@@ -6,6 +6,8 @@
 
 **A load-bearing distinction this review makes throughout:** a decision can be *resolved for the build* (it's pinned down in `implementation-brd.md`) while still being *undocumented in the BRD itself* (`BRD/Doc_BRD.md`'s text hasn't changed). Those get a lower severity than a decision that's genuinely unresolved anywhere — but they're still findings, because the BRD is supposed to be the source of truth, and right now a reader of the BRD alone would not know about several decisions that already govern the build.
 
+**Refreshed 2026-08-20** against two stakeholder decisions confirmed since the initial pass, now recorded in `.claude/agents/implementation-brd.md` and `.claude/agents/verification-brd.md`: (1) the 2–3 minute consultation criterion is confirmed to mean *workflow completeness* — the doctor can enter patient, appointment, visit, and prescription details without unnecessary steps — not a literal stopwatch measurement, closing CR-1; (2) password-reset/recovery functionality is explicitly not required for Phase 1, an accepted-risk decision that closes AC-2. Both are marked **Resolved** below rather than removed, so the reasoning and accepted tradeoff stay visible. (Two other decisions confirmed in the same pass — search uses contains matching, and appointment slot duration is doctor-entered — don't correspond to open findings in *this* document; see the refreshed `docs/verification-brd-review.md` for those.)
+
 ---
 
 ## Executive Summary
@@ -14,22 +16,22 @@ This is a meaningfully stronger position than the BRD's text alone would suggest
 
 Four things matter most:
 
-1. **Two Critical architecture gaps have no owner anywhere, not even in `implementation-brd.md`:** there is no backup mechanism actually adopted (only a brainstorm recommendation, not a decision), and there is no password-recovery path for the single doctor account — a lost password means total, permanent lockout from every patient record, with no fallback. Both are worse than "undocumented" — they're unresolved.
+1. **One Critical architecture gap still has no owner: there is no backup mechanism actually adopted** (only a brainstorm recommendation, not a decision). Password recovery — previously a second Critical gap here — is now a closed decision: the stakeholder has confirmed no password-reset functionality is needed for Phase 1, an accepted risk rather than an oversight (see AC-2, now Resolved).
 2. **The walk-in question, flagged as open in `implementation-brd.md`, is a real BRD-level gap, not just an implementation detail.** The BRD's own Appointment status list includes `No-show`, which only makes sense in a clinic that also takes walk-ins — the document implies a workflow it never actually describes.
 3. **Emergency contact and medical/surgical history are still missing from the healthcare-domain field set**, even after `implementation-brd.md`'s fixed Patient spec added Allergies/CurrentMedications/ChronicConditions. The domain gap wasn't fully closed, it was partially closed.
-4. **Measurability is still the weakest dimension by far.** Of the BRD's 9 NFRs, only one (`page load < 2s`) is independently testable as written. This hasn't improved since baseline — none of the stack/spec decisions touch vague language, because that's a documentation problem, not an implementation one.
+4. **Measurability is still the weakest dimension by far.** Of the BRD's 9 NFRs, only one (`page load < 2s`) is independently testable as written. This hasn't improved since baseline — none of the stack/spec decisions touch vague language, because that's a documentation problem, not an implementation one. (The 2–3 minute consultation Success Criterion is the one exception — its interpretation is now settled; see CR-1, Resolved.)
 
-**Is this document currently safe to build from?** Partially. The stack and most of the data-model/feature shape are genuinely build-ready (via `implementation-brd.md`, not via the BRD text itself). The consultation, patient, prescription, and export slices in `docs/plan-brd-review.md` can proceed. Appointment/walk-in work should not proceed until §1 below is resolved, and the backup/password-recovery gaps in §3 need an owner before the app is considered done, not just before it's considered "started."
+**Is this document currently safe to build from?** Partially, and slightly more so than before. The stack and most of the data-model/feature shape are genuinely build-ready (via `implementation-brd.md`, not via the BRD text itself). The consultation, patient, prescription, and export slices in `docs/plan-brd-review.md` can proceed. Appointment/walk-in work should not proceed until §1 below is resolved, and the backup gap in §3 needs an owner before the app is considered done, not just before it's considered "started."
 
 ---
 
-## BRD Quality Score: 5.7 / 10
+## BRD Quality Score: 6.2 / 10
 
-- **Completeness (functional + domain coverage): 6.5** — Functional requirements are well covered, extended usefully by `implementation-brd.md`'s fixed specs. Domain gaps remain: emergency contact and medical/surgical history are absent everywhere, not just in the BRD text.
-- **Consistency (freedom from contradiction): 6.5** — The previous offline/hosting contradiction is now resolved by the local-only deployment decision. A handful of real tensions remain (vitals-vs-solo-doctor-speed, a duplicated search requirement, "secure login" vs. the accepted reversible-encryption tradeoff).
-- **Testability (share of requirements with measurable acceptance criteria): 4.5** — Still the weak point. 1 of 9 NFRs and 3 of 6 Success Criteria are independently testable as written; this dimension hasn't moved since baseline.
-- **Architecture readiness (share of architectural decisions documented): 6.0** — Stack, deployment, auth mechanism, and export shape are now solid. Backup/restore and password recovery are still genuinely open, not just undocumented.
-- **Traceability (requirements linked to a clear source/rationale): 5.0** — `implementation-brd.md`'s decisions trace well internally, but none of them are cited back into `BRD/Doc_BRD.md`. A reader of the BRD alone cannot discover that `Patient` now has Allergies, that `PatientId` starts at 0, or that phone numbers are intentionally non-unique.
+- **Completeness (functional + domain coverage): 6.5** — Unchanged. Functional requirements are well covered, extended usefully by `implementation-brd.md`'s fixed specs. Domain gaps remain: emergency contact and medical/surgical history are absent everywhere, not just in the BRD text.
+- **Consistency (freedom from contradiction): 7.5** *(up from 6.5)* — CR-1 (vitals-vs-solo-doctor-speed) is now resolved by the workflow-completeness interpretation. Remaining tensions: a duplicated search requirement (CR-4), "secure login" vs. the accepted reversible-encryption tradeoff (CR-3).
+- **Testability (share of requirements with measurable acceptance criteria): 4.5** — Unchanged. 1 of 9 NFRs and 3 of 6 Success Criteria are independently testable as written; this dimension hasn't moved since baseline, and the CR-1 resolution clarified *what* "2–3 minutes" means without adding a new measurement method to test it against.
+- **Architecture readiness (share of architectural decisions documented): 7.0** *(up from 6.0)* — Password recovery is now a closed, accepted-risk decision rather than an open gap. Backup/restore is still genuinely open, not just undocumented.
+- **Traceability (requirements linked to a clear source/rationale): 5.5** *(up from 5.0)* — Two more decisions (consultation-timing interpretation, no-password-reset) now have documented rationale in `implementation-brd.md`/`verification-brd.md`, though — like the rest of this dimension's gap — neither is copied back into `BRD/Doc_BRD.md` itself yet. A reader of the BRD alone still cannot discover that `Patient` now has Allergies, that `PatientId` starts at 0, or that phone numbers are intentionally non-unique.
 
 ---
 
@@ -44,9 +46,10 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 ## Critical Findings
 
 1. **No backup mechanism is actually adopted anywhere** — the BRD requires "regular automated backups," `implementation-brd.md` doesn't assign one, and `docs/brainstorm-brd-review.md`'s proposal is a recommendation, not a decision. See Architecture Completeness Report, AC-1.
-2. **No password-recovery path exists for the single doctor account.** A forgotten password permanently locks out every patient record with no fallback — a worse failure mode than almost anything else in this document, because it's total and irreversible. See Architecture Completeness Report, AC-2.
-3. **Walk-in patients are structurally unsupported**, and the BRD's own `No-show` appointment status implies a workflow (unscheduled arrivals) the document never actually describes or resolves. See Missing Requirement Report, MR-1.
-4. **Emergency contact is entirely absent** from the Patient data model, in the BRD and in every fixed spec. For a system recording vitals and prescribing medication, there is no path to reach anyone if a patient has an adverse event at the clinic. See Healthcare Completeness Report, HC-1.
+2. **Walk-in patients are structurally unsupported**, and the BRD's own `No-show` appointment status implies a workflow (unscheduled arrivals) the document never actually describes or resolves. See Missing Requirement Report, MR-1.
+3. **Emergency contact is entirely absent** from the Patient data model, in the BRD and in every fixed spec. For a system recording vitals and prescribing medication, there is no path to reach anyone if a patient has an adverse event at the clinic. See Healthcare Completeness Report, HC-1.
+
+*Resolved since the initial pass:* no password-recovery path for the single doctor account was previously Critical Finding #2. The stakeholder has confirmed this is an accepted Phase 1 exclusion, not a gap — see Architecture Completeness Report, AC-2 (now Resolved).
 
 ---
 
@@ -59,7 +62,7 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 | Schedule appointments | Functional | Existing | [in scope] | Conflicts with: `No-show` status implying unsupported walk-in workflow | No | Blocked until MR-1 resolved. |
 | View daily appointment list | Functional | Existing | [in scope] | OK | Yes | — |
 | Update appointment status (Scheduled/Completed/Cancelled/No-show) | Functional | Existing | [in scope] | OK | Yes | Legal-transition rule (status can't be manually set to Completed) is a `docs/plan-brd-review.md` recommendation, not yet in the BRD. |
-| Mandatory vitals capture (temp/BP/pulse) | Functional | Existing | [in scope] | Conflicts with: 2–3 min consultation target for a solo doctor (no receptionist) | Yes | See Contradiction Report, CR-1. |
+| Mandatory vitals capture (temp/BP/pulse) | Functional | Existing | [in scope] | OK — see CR-1 (Resolved) | Yes | Previously flagged against the 2–3 min consultation target; resolved by the workflow-completeness interpretation. |
 | Record patient complaints (free text) | Functional | Existing | [in scope] | OK | Yes | — |
 | Record diagnosis notes | Functional | Existing | [in scope] | OK | Yes | — |
 | Add medicines (name/dosage/frequency/duration/instructions) | Functional | Existing | [in scope] | OK | Yes | — |
@@ -80,7 +83,7 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 | Security — data encryption at rest and in transit | NFR | Existing | [in scope] | OK | No | Scope of "at rest" beyond the password field is undefined — see AC-3. |
 | Scalability — single clinic, moderate patient volume | NFR | Existing | [in scope] | OK | No | See TR-5. |
 | Compatibility — modern browsers (Chrome, Edge, Safari) | NFR | Existing | [in scope] | OK | No | No version floor stated — see TR-6. |
-| Success — consultation record within 2–3 minutes | Success Criterion | Existing | [in scope] | Conflicts with: mandatory vitals + no-receptionist scope | Yes | Testable as stated; risk is structural, not a measurability problem — see CR-1. |
+| Success — consultation record within 2–3 minutes | Success Criterion | Existing | [in scope] | OK — see CR-1 (Resolved) | Yes | Confirmed interpretation: workflow completeness (patient/appointment/visit/prescription entry, no unnecessary steps), not a literal stopwatch measurement — see `.claude/agents/implementation-brd.md` "Fixed interpretation" and CR-1. |
 | Success — search/history retrieval within 2–5 seconds | Success Criterion | Existing | [in scope] | Conflicts with: NFR "fast... retrieval" (see above) | Yes | — |
 | Success — 80% reduction in paper usage | Success Criterion | Existing | [in scope] | OK | No | Has a number but no stated baseline/measurement method — see TR-7. |
 | Success — smooth generation and printing of prescriptions | Success Criterion | Existing | [in scope] | OK | No | See TR-8. |
@@ -91,12 +94,13 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 
 ## Contradiction Report
 
-### CR-1: Mandatory vitals + no-receptionist scope vs. the 2–3 minute consultation target
-- **Severity:** High
-- **Business Impact:** The doctor is the only person in the room (receptionist access is explicitly excluded) and must personally capture temperature/BP/pulse, complaints, diagnosis, and medication, all within a target the BRD treats as achievable without acknowledging that vitals capture alone consumes part of that budget. If the target quietly slips in practice, the headline success criterion fails silently rather than by a documented tradeoff.
-- **Technical Impact:** Nothing in the schema or workflow enforces a time budget, so there's no way to test "did vitals entry protect the 2–3 minute target" — a UI that happens to be fast passes by accident, not by design. `docs/brainstorm-brd-review.md` §2.1 mitigates the UX (fixed tab order, no unit toggle) but the BRD itself never names the constraint.
-- **Recommendation:** Add a line to the BRD explicitly budgeting the consultation timeline (e.g., vitals ≤30s, complaints/diagnosis ≤60s, medication ≤60–90s) so "2–3 minutes" is a composed target, not an unexamined aspiration, and so a future UI change that blows the vitals budget is caught against a real number.
-- **Suggested BRD Text:** Add under Success Criteria: *"The 2–3 minute consultation target assumes a solo doctor with no receptionist assistance; vitals capture is budgeted at ≤30 seconds, complaints/diagnosis entry at ≤60 seconds, and medication entry at ≤60–90 seconds within that total."*
+### CR-1: Mandatory vitals + no-receptionist scope vs. the 2–3 minute consultation target — **RESOLVED**
+- **Severity:** High *(closed 2026-08-20)*
+- **Resolution:** Confirmed by the stakeholder and now recorded in `.claude/agents/implementation-brd.md` ("Fixed interpretation: the 2–3 minute consultation criterion") and `.claude/agents/verification-brd.md`: the target is interpreted as **workflow completeness**, not a literal wall-clock measurement — the doctor can enter patient details, appointment details, visit details, prescription details, and any other required fields without unnecessary steps. There is no stopwatch acceptance test; friction (an added click, modal, or round-trip) is the thing to catch, not elapsed seconds.
+- **Business Impact (as originally raised):** The doctor is the only person in the room (receptionist access is explicitly excluded) and must personally capture everything within a target the BRD treated as achievable without acknowledging that vitals capture alone consumes part of it. The resolution above removes the ambiguity about what's actually being measured, which was the real risk — not the vitals themselves.
+- **Technical Impact (as originally raised):** Nothing in the schema or workflow enforced a time budget, so there was no way to test "did vitals entry protect the 2–3 minute target." That's now resolved by redefining the target as step-count/friction, which *is* directly testable (see the updated Consultation-path gate in `.claude/agents/verification-brd.md`).
+- **Residual documentation gap (Medium, not Critical/High):** This decision, like others in this report, lives in the agent config files, not in `BRD/Doc_BRD.md` itself. A reader of the BRD alone still can't tell "2–3 minutes" means workflow completeness rather than a timed test.
+- **Suggested BRD Text:** Replace `"Doctor can complete a consultation record within 2–3 minutes"` under Success Criteria with: *"Doctor can complete a consultation record — patient details, appointment details, visit details, and prescription details — within 2–3 minutes of active workflow, meaning no unnecessary steps, clicks, or round-trips are added beyond what the required fields demand. This is evaluated as workflow completeness, not a literal stopwatch measurement."*
 
 ### CR-2: NFR "fast patient search and retrieval" vs. Success Criterion "search within 2–5 seconds"
 - **Severity:** Low
@@ -181,13 +185,14 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 - **Recommendation:** Formally adopt a backup mechanism (the brainstorm recommendation is reasonable) and record it as an NFR implementation, not just a plan-doc suggestion.
 - **Suggested BRD Text:** Replace `"Regular automated backups"` under Reliability with: *"Regular automated backups: a nightly scheduled task performs a full SQL Server backup to a local (or external) storage location, with a documented restore procedure. Backup success/failure is logged and checked periodically."*
 
-### AC-2: No password-recovery path for the single doctor account
-- **Severity:** Critical
-- **Business Impact:** If the doctor forgets the password, there is currently no way back in — every patient record becomes permanently inaccessible through the application. This is a worse failure mode than most Critical findings in this document because it's total (not partial) and, without a recovery path, effectively irreversible.
-- **Technical Impact:** `implementation-brd.md`'s Authentication spec explicitly rules out registration/self-signup and any advanced auth mechanism, and says nothing about recovery — meaning this isn't an oversight waiting to be filled in during implementation, it's a real gap in the accepted spec itself.
-- **Rework Risk:** Low if decided now (a local recovery mechanism is simple to add to the `Users` table/service before it's built); high if discovered after the doctor is already locked out in production, since the "safe" recovery paths (a support contact, a documented manual DB reset procedure) need to exist *before* they're needed.
-- **Recommendation:** Add a minimal recovery path appropriate to a single-machine, no-network app — e.g., a documented manual procedure (a support script that resets the password directly via EF Core / SSMS, run by whoever provides the doctor technical support) rather than a self-service "forgot password" flow, which would need infrastructure (email) this app deliberately doesn't have.
-- **Suggested BRD Text:** Add under Security: *"Password recovery: no self-service recovery flow (no email/SMS infrastructure exists). A documented manual reset procedure, run by the application's support contact via direct database access, exists for the case where the doctor's password is lost."*
+### AC-2: No password-recovery path for the single doctor account — **RESOLVED (accepted risk)**
+- **Severity:** Critical *(closed 2026-08-20)*
+- **Resolution:** Confirmed by the stakeholder and now recorded in `.claude/agents/implementation-brd.md` ("No password-reset or recovery flow in Phase 1") and `.claude/agents/verification-brd.md`: password-reset/recovery functionality is explicitly not required for Phase 1. This is an accepted-risk decision, not an oversight — its absence is not a finding, and adding one unprompted would itself now be a deviation from the fixed spec.
+- **Business Impact (as originally raised, now an accepted tradeoff):** If the doctor forgets the password, there is no way back in — every patient record becomes inaccessible through the application until whoever supports the doctor intervenes directly (e.g., resetting the row via SSMS/EF Core). The stakeholder has weighed this against building recovery infrastructure for a single-user, single-machine app and accepted the risk for now.
+- **Technical Impact:** `implementation-brd.md`'s Authentication spec already ruled out registration/self-signup and any advanced auth mechanism; this decision closes the one remaining gap in that spec rather than leaving it silently unaddressed.
+- **Residual documentation gap (Low, not Critical):** Like CR-1, this decision lives in the agent config files, not in `BRD/Doc_BRD.md` itself.
+- **Recommendation:** If this ever needs revisiting (e.g., if the doctor is actually locked out in practice), the lowest-cost fallback remains a manual procedure — direct DB/EF Core access by whoever supports the doctor — rather than building self-service recovery infrastructure this single-machine app doesn't otherwise need.
+- **Suggested BRD Text:** Add under Security: *"Password recovery: not implemented in Phase 1 — an accepted scope decision for a single-user, local-only application. If the doctor's password is lost, recovery requires direct technical support (e.g., a database-level reset); there is no self-service or automated recovery flow."*
 
 ### AC-3: Scope of "data encryption at rest" beyond the password field is undefined
 - **Severity:** High
@@ -226,11 +231,12 @@ The BRD states "Open Questions: None." That does not hold. Real open questions, 
 
 - Walk-in handling (MR-1) — a resolution is proposed (`docs/brainstorm-brd-review.md` §1.1) but not adopted.
 - Backup mechanism (AC-1) — a resolution is proposed but not adopted.
-- Password recovery (AC-2) — no proposal exists yet at all.
 - Scope of "at rest" encryption beyond the login password (AC-3).
 - "Recent patients" ranking definition (MR-2).
 - Whether Height/SpO2 (HC-3) are wanted — this one is a genuine stakeholder call, not something to resolve unilaterally.
 - Measurement method/baseline for the "80% paper reduction" success criterion (TR-7).
+
+*Resolved and removed from this list since the initial pass:* password recovery (previously listed here with "no proposal exists yet at all") is now an accepted Phase 1 exclusion, not an open question — see AC-2. The 2–3 minute consultation criterion's meaning is also now settled — see CR-1.
 
 ---
 
@@ -239,11 +245,10 @@ The BRD states "Open Questions: None." That does not hold. Real open questions, 
 | Risk | Likelihood | Impact | Severity | Owner/Mitigation |
 |---|---|---|---|---|
 | Local machine failure with no backup in place | Medium (any single machine eventually fails or is lost/stolen) | Total loss of all patient records | Critical | Adopt AC-1's backup mechanism before general release. |
-| Doctor forgets password, no recovery path | Low-Medium (rare but plausible over years of use) | Total, permanent lockout from the application | Critical | Adopt AC-2's manual recovery procedure before general release. |
+| Doctor forgets password, no recovery path | Low-Medium (rare but plausible over years of use) | Total lockout from the application until a support contact intervenes directly | **Accepted** *(was Critical)* | Stakeholder decision confirmed 2026-08-20: no password-reset functionality for Phase 1. Risk is understood and intentionally carried, with manual DB-level reset as the documented fallback — see AC-2. |
 | Walk-in patient arrives, workflow has no supported path | High (walk-ins are normal in a GP clinic) | Doctor reverts to paper for walk-ins, undermining the product goal | Critical | Adopt MR-1's auto-created-appointment resolution before the Appointment/Visit implementation step. |
 | Adverse event during a visit, no emergency contact on file | Low (infrequent) but severe when it occurs | Delayed ability to reach family in a medical emergency | High | Add HC-1's Emergency Contact fields. |
 | "Secure login" read as stronger than the accepted reversible-encryption design | Medium (likely to surface in any later security review) | Reputational/audit-finding risk, not a live technical vulnerability given the no-network deployment | High | Document the accepted tradeoff per CR-3 before any external review happens. |
-| Vitals-entry time silently erodes the 2–3 minute target with no budget to check it against | Medium | Headline success criterion quietly fails without being caught | High | Adopt CR-1's explicit time budget. |
 
 ---
 
@@ -308,14 +313,13 @@ The BRD states "Open Questions: None." That does not hold. Real open questions, 
 
 ## Developer Readiness Assessment
 
-A developer **can** start building today against the consultation, patient, prescription, and export slices — those are genuinely well-specified once `implementation-brd.md` is read alongside the BRD (though it shouldn't have to be a second document; see AC-6). A developer **should not** start the Appointment/Visit slice until the walk-in question (MR-1) is resolved, since it's a schema-shaped decision, not a detail to patch in later. Two things block calling this "done" even after every feature ships: the backup mechanism (AC-1) and password recovery (AC-2) — both are Critical, both currently have zero owner, and neither is a UI polish item that can be deferred past general release.
+A developer **can** start building today against the consultation, patient, prescription, and export slices — those are genuinely well-specified once `implementation-brd.md` is read alongside the BRD (though it shouldn't have to be a second document; see AC-6). A developer **should not** start the Appointment/Visit slice until the walk-in question (MR-1) is resolved, since it's a schema-shaped decision, not a detail to patch in later. One thing blocks calling this "done" even after every feature ships: the backup mechanism (AC-1) — Critical, currently zero owner, not a UI polish item that can be deferred past general release. Password recovery (AC-2), previously a second such blocker, is now a closed decision — no longer something to build toward.
 
 In priority order, what specifically blocks a clean build:
 1. Walk-in resolution (MR-1) — blocks Appointment/Visit implementation specifically.
 2. Backup mechanism adoption (AC-1) — blocks general release, not initial development.
-3. Password recovery procedure (AC-2) — blocks general release, not initial development.
-4. Everything else in this report is real but non-blocking — clinical field additions (HC-1/HC-2/HC-3), measurability rewrites (TR-1 through TR-9), and documentation-consistency fixes (AC-4/AC-5/AC-6) can land incrementally without stopping feature work.
+3. Everything else in this report is real but non-blocking — clinical field additions (HC-1/HC-2/HC-3), measurability rewrites (TR-1 through TR-9), and documentation-consistency fixes (AC-4/AC-5/AC-6) can land incrementally without stopping feature work.
 
 ## Final Verdict
 
-**Ship the consultation/patient/prescription/export build now; do not ship general release without a backup mechanism and a password-recovery procedure; do not start the Appointment/Visit slice until the walk-in question is resolved.** The single thing that would move this verdict most is resolving MR-1 — it's the one finding that blocks a plan step directly rather than being a pre-launch checklist item, and it's cheap to resolve (a one-line schema-compatible service method, per `docs/brainstorm-brd-review.md` §1.1) relative to the risk of building the Appointment/Visit slice around an assumption that turns out wrong.
+**Ship the consultation/patient/prescription/export build now; do not ship general release without a backup mechanism; do not start the Appointment/Visit slice until the walk-in question is resolved.** The single thing that would move this verdict most is resolving MR-1 — it's the one remaining finding that blocks a plan step directly rather than being a pre-launch checklist item, and it's cheap to resolve (a one-line schema-compatible service method, per `docs/brainstorm-brd-review.md` §1.1) relative to the risk of building the Appointment/Visit slice around an assumption that turns out wrong. With password recovery now resolved as an accepted risk, the backup mechanism (AC-1) is the last Critical item with no owner in this document.
