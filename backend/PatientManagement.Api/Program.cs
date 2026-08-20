@@ -14,6 +14,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("AppDb")));
 
 builder.Services.AddScoped<IPasswordCrypto, AesPasswordCrypto>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<IWalkInService, WalkInService>();
 
 const string AngularDevCorsPolicy = "AngularDevCorsPolicy";
 builder.Services.AddCors(options =>

@@ -12,6 +12,8 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<DoctorDetails> DoctorDetails => Set<DoctorDetails>();
     public DbSet<Patient> Patients => Set<Patient>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<Visit> Visits => Set<Visit>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +43,39 @@ public class AppDbContext : DbContext
             entity.Property(p => p.Gender).IsRequired();
             // Phone is deliberately NOT configured as unique or required --
             // multiple patients may legitimately share a phone number.
+        });
+
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            // Only one appointment may exist for a given date/time slot --
+            // enforced at the DB level so it holds regardless of which
+            // future code path (scheduled booking or walk-in) inserts the row.
+            entity.HasIndex(a => a.ScheduledTime).IsUnique();
+
+            entity.HasOne(a => a.Patient)
+                  .WithMany()
+                  .HasForeignKey(a => a.PatientId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Visit>(entity =>
+        {
+            entity.Property(v => v.Weight).HasColumnType("decimal(6,3)");
+            entity.Property(v => v.Temperature).HasColumnType("decimal(4,1)");
+
+            // A visit always originates from exactly one appointment, and an
+            // appointment produces at most one visit.
+            entity.HasOne(v => v.Appointment)
+                  .WithOne()
+                  .HasForeignKey<Visit>(v => v.AppointmentId)
+                  .IsRequired()
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(v => v.AppointmentId).IsUnique();
+
+            entity.HasOne(v => v.Patient)
+                  .WithMany()
+                  .HasForeignKey(v => v.PatientId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
