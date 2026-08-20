@@ -14,6 +14,8 @@ public class AppDbContext : DbContext
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<Visit> Visits => Set<Visit>();
+    public DbSet<Prescription> Prescriptions => Set<Prescription>();
+    public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +78,27 @@ public class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(v => v.PatientId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Prescription>(entity =>
+        {
+            entity.Property(p => p.ClinicName).IsRequired();
+            entity.Property(p => p.DoctorName).IsRequired();
+
+            entity.HasOne(p => p.Visit)
+                  .WithMany()
+                  .HasForeignKey(p => p.VisitId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PrescriptionItem>(entity =>
+        {
+            entity.Property(i => i.DrugName).IsRequired();
+
+            entity.HasOne(i => i.Prescription)
+                  .WithMany(p => p.Items)
+                  .HasForeignKey(i => i.PrescriptionId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
