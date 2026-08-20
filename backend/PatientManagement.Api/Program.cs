@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PatientManagement.Api.Data;
+using PatientManagement.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("AppDb")));
+
+builder.Services.AddScoped<IPasswordCrypto, AesPasswordCrypto>();
 
 const string AngularDevCorsPolicy = "AngularDevCorsPolicy";
 builder.Services.AddCors(options =>
@@ -25,6 +28,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var passwordCrypto = scope.ServiceProvider.GetRequiredService<IPasswordCrypto>();
+    await DoctorAccountSeeder.SeedAsync(db, passwordCrypto, app.Configuration);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
