@@ -7,6 +7,8 @@
 **Grounded in:** `docs/worktree-brd-review.md` @ commit `7c8e0ea` (its Requirement Analysis Matrix, Contradiction Report, Healthcare/Architecture Completeness Reports, and Testability Review), `docs/implementation-brd-review.md` @ commit `3f811bd` (build-readiness), and `docs/plan-brd-review.md` (the plan `verification-brd`'s own instructions call "the plan being implemented").
 **Scope:** assessment only. No application code, no tests, no BRD edits, no edits to any agent configuration file.
 
+**Refreshed 2026-08-20** against four stakeholder decisions confirmed since the initial pass, now recorded in `.claude/agents/verification-brd.md` and `.claude/agents/implementation-brd.md`: the 2–3 minute consultation criterion is confirmed as workflow completeness, not a stopwatch measurement; password-reset functionality is explicitly not required for Phase 1; patient search matches on **contains** semantics; appointment slot duration is doctor-entered. All four move findings in this document — see the updated verdict, Part 1 rows 2/3/13/27, and Part 3/Part 4 below.
+
 ---
 
 ## Why this isn't a PASS/FAIL run
@@ -17,12 +19,12 @@ What follows instead is the question my own test-strategy section and hard gates
 
 The comparison that matters:
 
-| | Prior pass (`b31eaab`) | This pass |
-|---|---|---|
-| Testable now | 14 of 35 (40%) | **16 of 33 (48%)** |
-| Harness gap | 3 of 35 (9%) | **4 of 33 (12%)** |
-| Not testable as worded | 18 of 35 (51%) | **13 of 33 (39%)** |
-| Testable using the BRD's own text alone (no fixed-spec assist) | ~7 of 35 (20%) | **~9 of 33 (27%)** |
+| | Prior pass (`b31eaab`) | Initial current-BRD pass | After 2026-08-20 decisions |
+|---|---|---|---|
+| Testable now | 14 of 35 (40%) | 16 of 33 (48%) | **19 of 33 (58%)** |
+| Harness gap | 3 of 35 (9%) | 4 of 33 (12%) | **4 of 33 (12%)** |
+| Not testable as worded | 18 of 35 (51%) | 13 of 33 (39%) | **10 of 33 (30%)** |
+| Testable using the BRD's own text alone (no fixed-spec/agent-decision assist) | ~7 of 35 (20%) | ~9 of 33 (27%) | **~10 of 33 (30%)** |
 
 (Row count dropped from 35 to 33 because this pass reuses `docs/worktree-brd-review.md`'s 32-row Requirement Analysis Matrix plus one Exclusions row, rather than re-deriving a separate count — the two documents should stay comparable, not diverge on how they count the same BRD.)
 
@@ -41,18 +43,19 @@ The comparison that matters:
 
 ## Verdict, up front
 
-**16 of 33 requirements are verification-ready today. 4 are testable in principle but have no harness or dataset defined. 13 (39%) cannot be tested at all as worded.**
+**19 of 33 requirements are verification-ready today. 4 are testable in principle but have no harness or dataset defined. 10 (30%) cannot be tested at all as worded.**
 
 The prior pass's two highest-priority blockers are both resolved:
 
 1. **The stale export hard-gate is fixed.** (See Freshness check above and Part 3.) It no longer produces a false-FAIL on correct work or a false-PASS on the most likely real defect (one-row-per-patient instead of one-row-per-visit).
 2. **The plaintext-password-vs-encryption-NFR contradiction is resolved.** Authentication now uses reversible encryption, not plaintext — a correctly built auth module storing an encrypted (not plaintext, not hashed) password no longer contradicts the BRD's literal "data encryption" wording the way plaintext storage did. A softer wording tension remains (§Part 3, Authentication gates) but it no longer forces `verification-brd` to FAIL correctly-built work.
 
-Three things now stand out as the priorities for this pass, and none of them are things a fixed spec can close on its own — each needs either a BRD edit or a stakeholder decision:
+**Since that pass, four more stakeholder decisions were confirmed (2026-08-20) and closed three of that pass's own priorities:**
 
-1. **The 2–3 minute consultation criterion still has no measurement method.** This was the prior pass's second-priority finding and it is completely unchanged — every other major gap in this area (vitals mandatory-at-entry, units, BP storage format) has since been resolved by the fixed spec, which makes this the one glaring holdout. My own cross-cutting test-strategy rule obliges me to report the latency/click cost of every consultation-path step against this target, and I still cannot, because there is no stated start point, stop point, or whether physically taking a blood pressure counts.
-2. **Password recovery went from "dissolved" to "open."** The prior pass judged this closed because a plaintext password is trivially readable in SSMS by a support person. Under the current reversible-encryption spec, that's no longer automatic — recovering a lost password now requires a documented procedure (decrypt via the app secret, or reset directly) that doesn't exist yet. This directly matches `docs/worktree-brd-review.md`'s AC-2 (Critical): the procedure is cheap to write and easy to test once it exists, but right now there's nothing to test.
-3. **Search match semantics are still undefined**, and appointment scheduling still has no slot-length/double-booking rule, independent of the walk-in question `docs/worktree-brd-review.md`'s MR-1 already covers. Both are genuinely new observations from the verification lens — the BA-level review didn't flag either, because both are testability gaps (there's no expected result to assert) rather than business-completeness gaps.
+1. **The 2–3 minute consultation criterion now has a measurement method.** Confirmed as workflow completeness — the doctor can enter patient/appointment/visit/prescription details without unnecessary steps — not a literal stopwatch measurement. Row 27 moves from "not testable as worded" to "testable now": my cross-cutting test-strategy rule can now be satisfied by reporting added friction (an extra click, modal, or round-trip) on the consultation path, which is directly assertable, instead of an undefined elapsed-time claim I could never write a test against.
+2. **Password recovery is closed, not "open."** Explicitly confirmed as not required for Phase 1 — an accepted risk, not a gap awaiting a procedure. This resolves what the prior pass called a reopened Critical finding (see Part 4).
+3. **Search match semantics are now defined** — contains (substring) matching on both name and phone. Rows 2 and 13 move from "not testable as worded" to "testable now."
+4. **Appointment slot duration is now defined** — doctor-entered per appointment. Row 3 improves but stays "not testable as worded": the slot-duration sub-gap is closed, but walk-in support (`docs/worktree-brd-review.md` MR-1) and whether double-booking is permitted are both still undefined.
 
 ---
 
@@ -63,8 +66,8 @@ Rows mirror `docs/worktree-brd-review.md`'s Requirement Analysis Matrix, in the 
 | # | BRD requirement | Status | Concrete test, or what's missing |
 |---|---|---|---|
 | 1 | Add/edit/view patient + capture Name/Age-DOB/Gender/Contact | **Testable now** | Integration: POST→GET round-trip; PUT persists; GET 404s for unknown id; Age and DOB persist independently (both now fixed, closing the prior pass's Age-vs-DOB ambiguity); Allergies/CurrentMedications/ChronicConditions round-trip. **Caveat:** Emergency Contact and Medical/Surgical History aren't in the fixed spec yet (`docs/worktree-brd-review.md` HC-1/HC-2), so a "complete patient record" test can't yet cover them — not a test-writing gap, a scope gap. |
-| 2 | Search patients by name/phone | **Not testable as worded** | No match semantics are locked anywhere. Does `"kum"` match `"Kumar"`? Prefix, contains, or exact? Is phone matched digit-normalized? `docs/brainstorm-brd-review.md` §4.1 recommends prefix/contains ranked by recency, but it's a brainstorm recommendation, not a locked spec — **needs an explicit match rule before this is one parameterized integration test instead of an open question.** |
-| 3 | Schedule appointments | **Not testable as worded** | Two independent gaps, not one: (a) MR-1 (walk-in support, Critical) — no expected result exists for an unscheduled arrival; (b) **slot length and double-booking are undefined anywhere**, including in the fixed spec — a genuinely new finding from this pass, since neither the BA-level review nor the implementation spec addresses it. Needs both before a scheduling test has an expected outcome. |
+| 2 | Search patients by name/phone | **Testable now** *(was "not testable as worded")* | **Resolved 2026-08-20.** Match semantics are now defined: contains (substring) matching on both name and phone, not prefix-only. Integration: `"kum"` matches `"Kumar"`; a parameterized test can now assert this directly instead of guessing at intent. |
+| 3 | Schedule appointments | **Not testable as worded** — narrower than before | Two independent gaps; one is now closed. (a) MR-1 (walk-in support, Critical) — no expected result exists for an unscheduled arrival, still open. (b) ~~slot length undefined~~ **resolved 2026-08-20** — slot duration is now a doctor-entered field per appointment, directly testable (accepts and persists user input). **Still open:** whether double-booking (two appointments overlapping in time) is permitted, warned, or rejected — genuinely new from this pass, not addressed by the slot-duration decision. |
 | 4 | View daily appointment list | **Testable now** | Integration: appointments dated D returned, D−1/D+1 excluded. **Caveat:** asserts a midnight clinic-day boundary by assumption — undefined anywhere, same caveat as row 12. |
 | 5 | Update appointment status (4 values) | **Testable now** | Integration: each status persists and reads back — the enum is fully enumerated in the BRD. **If** the transition-guard recommendation in `docs/brainstorm-brd-review.md` §1.4 (status can't be manually set to `Completed` without a linked `Visit`) is adopted, that's a second, equally writable test; as of today it's a recommendation, not a locked rule, so only the basic persistence test is unconditionally writable. |
 | 6 | Mandatory vitals capture (temp/BP/pulse) | **Testable now** | **The single largest improvement in this pass.** The prior pass's Critical finding here (mandatory at entry vs. at finalize, unstated units, unstated BP storage format) is fully closed: non-nullable columns, °C only, separate systolic/diastolic smallints, `Weight` at `decimal(6,3)`. Component test: `Validators.required` on all three blocks submission. Integration: a visit request missing any of the three is rejected server-side, not just client-side. |
@@ -74,7 +77,7 @@ Rows mirror `docs/worktree-brd-review.md`'s Requirement Analysis Matrix, in the 
 | 10 | Generate printable prescription | **Testable now** | **Second-largest improvement in this pass.** The prior Critical finding (no header/footer field list to assert against) is closed: `DoctorDetails` (`ClinicName`, `DoctorName`, `Qualifications`, `RegistrationNumber`, `Logo`, `Signature`) is fixed, snapshotted onto the prescription at creation. Integration: print view/PDF contains all six fields as they existed *at creation time*, unchanged by a later `DoctorDetails` edit — directly testable by editing `DoctorDetails` after creation and asserting the existing prescription is unaffected. |
 | 11 | View previous visits + vitals/complaints/dx/Rx | **Testable now** | Integration: a patient with N visits returns N visits with children eager-loaded. |
 | 12 | Filter history by date | **Testable now** | Integration: range boundaries inclusive/exclusive, empty range returns empty. Same clinic-day-boundary caveat as row 4. |
-| 13 | Quick patient search (Search & Navigation) | **Not testable as worded** | Same match-semantics gap as row 2 — this is `docs/worktree-brd-review.md`'s CR-4 duplicate requirement, so it inherits row 2's gap rather than having its own. |
+| 13 | Quick patient search (Search & Navigation) | **Testable now** *(was "not testable as worded")* | Inherits row 2's resolution — this is `docs/worktree-brd-review.md`'s CR-4 duplicate requirement, so it inherits row 2's status rather than having its own. |
 | 14 | View recent patients | **Not testable as worded** | `docs/worktree-brd-review.md` MR-2 (High): no defined ranking (registration-recency vs. visit-recency) or count. Trivial integration test once defined. |
 | 15 | Navigation between profile and visits | **Testable now (shallow)** | Component/routing test proves a route exists and is reachable — but "easy" carries no click-budget, so a *regression* in navigation friction (an extra required click added later) has nothing to fail against. Proves existence, not quality. |
 | 16 | Export data as CSV | **Testable now** | Fully specified; see Part 3, Export gates. The prior pass's stale-hard-gate issue is resolved — this row is unconditionally testable against the current gate list. |
@@ -88,7 +91,7 @@ Rows mirror `docs/worktree-brd-review.md`'s Requirement Analysis Matrix, in the 
 | 24 | NFR — data encryption at rest and in transit | **Not testable as worded** | `docs/worktree-brd-review.md` AC-3 (High): scope of "at rest" beyond the login password column is undefined — whole-database TDE, host-level disk encryption, or just the password? "In transit" is not applicable beyond `localhost` under the local-deployment model, so that half is moot rather than untestable. The only assertion available today is a negative (*no column-level encryption exists on other tables*), which isn't what the requirement claims. |
 | 25 | NFR — moderate patient volume (Scalability) | **Not testable as worded** | No figure exists anywhere (`docs/worktree-brd-review.md` TR-5 proposes 5,000 patients/25,000 visits, not adopted). Every volume-dependent performance test (rows 19, 28) is blocked on the same missing number. |
 | 26 | NFR — modern browsers (Chrome, Edge, Safari) | **Harness gap** | Assertable in principle for Chrome/Edge (`ng test` runs headless Chrome by default). **Safari cannot be run on the doctor's Windows machine at all** — no Mac is confirmed to exist anywhere in the repo. Needs either dropping Safari from the supported list or naming the machine it will actually be verified on. |
-| 27 | SC — consultation record within 2–3 minutes | **Not testable as worded** | The single most consequential unresolved gap in this document (`docs/worktree-brd-review.md` CR-1, High). No start point, no stop point, no statement of whether physically taking vitals counts. My own cross-cutting rule obliges a latency/click-cost report against this number on every consultation-path step, and there is nothing to report it against. Everything *downstream* of this criterion (vitals mandatory-at-entry, medication autocomplete) is now well-specified — this is the one piece that stayed exactly as unmeasurable as it was at the prior pass. |
+| 27 | SC — consultation record within 2–3 minutes | **Testable now** *(was "not testable as worded")* | **Resolved 2026-08-20** (`docs/worktree-brd-review.md` CR-1, now Resolved). Confirmed as workflow completeness — patient/appointment/visit/prescription details enterable without unnecessary steps — not a stopwatch measurement. My cross-cutting rule is now satisfiable: report added friction (extra click/modal/round-trip) on the consultation path per step, which is directly assertable, rather than an undefined elapsed-time claim. |
 | 28 | SC — search/history retrieval within 2–5 seconds | **Harness gap** | A real number, but no dataset size or percentile (needs e.g. *p95 < 2s at 5,000 patients/25,000 visits*, consistent with row 25's proposed figures once adopted). Generous enough to pass trivially at small seed sizes, so it measures little without a defined dataset. |
 | 29 | SC — ≥80% reduction in paper usage | **Not testable as worded** | Has a real number but no baseline or measurement method (`docs/worktree-brd-review.md` TR-7). Not a software test regardless of how it's worded — needs a stated before/after measurement process, not a unit test. |
 | 30 | SC — smooth generation and printing | **Not testable as worded** | "Smooth" has no pass/fail condition (`docs/worktree-brd-review.md` TR-8). Print *content* correctness is now testable (row 10); print *quality on physical hardware* is a manual gate, not an automated one, and should be labeled as such rather than implying a suite can cover it. |
@@ -100,16 +103,16 @@ Rows mirror `docs/worktree-brd-review.md`'s Requirement Analysis Matrix, in the 
 
 | Status | Count | Share |
 |---|---|---|
-| **Testable now** | **16** | 48% |
+| **Testable now** | **19** | 58% |
 | **Harness gap** | **4** | 12% |
-| **Not testable as worded** | **13** | 39% |
+| **Not testable as worded** | **10** | 30% |
 | Total | 33 | |
 
-**Testable now:** rows 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 23, 31, 33.
+**Testable now:** rows 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 23, 27, 31, 33.
 **Harness gap:** rows 19, 22, 26, 28.
-**Not testable as worded:** rows 2, 3, 13, 14, 18, 20, 21, 24, 25, 27, 29, 30, 32.
+**Not testable as worded:** rows 3, 14, 18, 20, 21, 24, 25, 29, 30, 32.
 
-**Read the 16 carefully.** Rows 1 (partially), 6, 10, 16, 17, and 23 are verifiable *only because the fixed specs in `implementation-brd.md` supplied a contract the BRD text itself does not contain* — six of sixteen. On the BRD's own unaided terms, the genuinely verification-ready set is closer to **9 of 33 (27%)**, up modestly from ~20% at the prior pass — a smaller improvement than the headline 40%→48% suggests, because the BRD's own text hasn't changed at all; only the specs sitting alongside it have.
+**Read the 19 carefully.** Rows 1 (partially), 2, 6, 10, 13, 16, 17, 23, and 27 are verifiable *only because a fixed spec or an explicit agent-level decision supplied a contract the BRD text itself does not contain* — nine of nineteen. On the BRD's own unaided terms, the genuinely verification-ready set is closer to **10 of 33 (30%)**, up only slightly from ~27% at the prior pass — a smaller improvement than the headline 48%→58% suggests, because the BRD's own text hasn't changed at all; every gain this pass, like the last one, comes from specs and decisions sitting alongside it, not from the document itself.
 
 ---
 
@@ -117,9 +120,9 @@ Rows mirror `docs/worktree-brd-review.md`'s Requirement Analysis Matrix, in the 
 
 **A number is missing (6 rows):** 18 (interaction budget), 20+28 (search percentile/threshold), 21 (RPO/RTO), 24 (encryption-at-rest scope), 25 (dataset volume), 32 (onboarding-time target). Each is one sentence and becomes an ordinary automated test once written.
 
-**A decision is missing (4 rows):** 2/13 (search match semantics), 3 (appointment slot rules + walk-in), 5 (whether the status-transition guard is adopted), 22 (whether the proposed backup mechanism is adopted). Three of these four are the *same* decisions `docs/implementation-brd-review.md` already names as build-blockers — the build blocker and the verification blocker are the same item, so one decision session unblocks both.
+**A decision is missing (2 rows, down from 4):** 3 (appointment walk-in support + double-booking rule — slot duration itself resolved 2026-08-20), 5 (whether the status-transition guard is adopted). Row 22 (whether the proposed backup mechanism is adopted) stays open too, but is tracked separately below since it's now a harness-gap, not a pure decision gap. Row 2/13 (search match semantics) is resolved and removed from this list. These remaining decisions are the *same* ones `docs/implementation-brd-review.md` already names as build-blockers — the build blocker and the verification blocker are the same item, so one decision session unblocks both.
 
-**A measurement method is missing (2 rows):** 27 (2–3 min: start point, stop point, includes/excludes physical vitals-taking), 29 (paper-usage baseline). Row 27 is the significant one — it's the BRD's headline number and the only Critical-adjacent gap in this document that a fixed spec cannot close, because it's inherently a BRD-authoring decision, not an implementation one.
+**A measurement method is missing (1 row, down from 2):** 29 (paper-usage baseline). Row 27 (2–3 minute consultation) is resolved and removed from this list — its measurement method is now defined as workflow completeness/friction, not elapsed time.
 
 **Not verifiable by software at all, but now correctly scoped as manual/operational gates rather than implied automated tests (2 rows):** 29 (paper reduction — a business observation), 30 (print quality on physical hardware — a manual gate). Row 22 (backups) has moved *out* of this category this pass, now that a scriptable mechanism has been proposed.
 
@@ -169,7 +172,7 @@ All three are fully specified and buildable today with no open questions.
 
 | Gate | Fully specified? |
 |---|---|
-| The flow adds no unnecessary steps; latency/click cost reported against the 2–3 minute target on every consultation-path step | **No — this is the one gate in this document that cannot be written today**, and it's unrelated to any schema or entity decision. There is no defined start point, stop point, or whether physically taking vitals counts toward the budget. `docs/worktree-brd-review.md` CR-1 proposes a sub-budget (vitals ≤30s, complaints/diagnosis ≤60s, medication ≤60–90s); until something like it is adopted, my own cross-cutting rule is unenforceable, not softened — I would be reporting a number against nothing. |
+| The flow (patient/appointment/visit/prescription entry) adds no unnecessary round-trip/modal/step beyond what the BRD requires, evaluated as workflow completeness against the 2–3 minute target | **Yes, as of 2026-08-20** — resolved by `.claude/agents/implementation-brd.md`'s "Fixed interpretation" section and the matching update to `.claude/agents/verification-brd.md`. Deliberately **not** a timed/stopwatch assertion — there is no start point, stop point, or physical-vitals-taking inclusion to define, because none is required. What's assertable per consultation-path step: no field beyond what the BRD/fixed specs require, no added modal, no added round-trip — a concrete, checkable property today, unlike the prior pass's unenforceable latency claim. |
 
 ---
 
@@ -180,7 +183,7 @@ Cases where a unit or integration test can pass while the requirement remains un
 | Finding | What's testable in isolation | What can't be verified, and what would fix it |
 |---|---|---|
 | Backup / restore ownership (`docs/worktree-brd-review.md` AC-1, Critical) | Nothing yet — but **this moved from structurally untestable to "testable once adopted"** this pass, since a concrete scriptable mechanism now exists as a proposal (row 22). | Row 21 ("no data loss") can't PASS until the mechanism is adopted and a restore drill exists to test against. |
-| Password recovery (`docs/worktree-brd-review.md` AC-2, Critical) | Nothing — **this is a reopened finding.** Under the prior plaintext-password spec, a support person could trivially read the value in SSMS, which the prior pass treated as "dissolved." Under the current reversible-encryption spec, that's no longer automatic. | Needs the documented manual procedure `docs/worktree-brd-review.md` AC-2 already proposes (decrypt/reset via direct DB + app-secret access by a support contact). Once documented, it's a small, easily testable script — the gap is that it doesn't exist yet, not that it's hard to build. |
+| Password recovery (`docs/worktree-brd-review.md` AC-2, Resolved 2026-08-20) | Nothing needed — **resolved, not open.** Confirmed as an accepted Phase 1 exclusion: no password-reset/recovery flow is required. This closes what the prior pass called a reopened Critical finding (the plaintext→encryption spec change had made manual SSMS recovery non-trivial); the stakeholder has now accepted that risk explicitly rather than requiring a procedure. | A route-enumeration negative test (no reset/recovery endpoint exists) is the only assertion this row needs going forward — same shape as the "no registration endpoint" gate it already sits beside. |
 | Clinical (non-export) audit logging | Nothing, but **this is resolved, not open** — `implementation-brd.md`'s "Fixed scope note" explicitly rules out a general clinical audit log for Phase 1. A prior "is this missing or intentional" ambiguity is now an explicit decision either way a test can respect. | — |
 | Data retention | A trivial test that a record still exists after creation (never-delete is the fixed policy) — genuinely testable today, unlike the prior pass. | The *policy rationale* for "keep forever" isn't stated (`docs/worktree-brd-review.md` AC-5, Medium) — a documentation gap, not a verification gap. |
 | Deployment/update model — upgrade-in-place | A fresh-apply migration smoke test (my own test strategy mandates one). | **Unchanged, still open.** Nothing verifies applying migration *n* on top of *n−1* with real data present and confirming the data survives — the case that actually matters on a permanently-local single machine that gets updated in place, not reinstalled. Needs a stated update procedure (auto-backup before schema change, rollback path) before this second, higher-value smoke test can be written. |
@@ -203,12 +206,12 @@ Cases where a unit or integration test can pass while the requirement remains un
 
 ## Final verdict
 
-**16 of 33 requirements (48%) are verification-ready today; 4 have a harness gap; 13 (39%) cannot be tested as worded.** On the BRD's own unaided terms — excluding the six rows testable only because the fixed Vitals, Prescription, Export, and Authentication specs supplied contracts the document itself lacks — the figure is closer to **9 of 33 (27%)**, a modest improvement on the prior pass's ~20% and consistent with `docs/worktree-brd-review.md`'s own observation that the BRD text hasn't moved even though the specs around it have.
+**19 of 33 requirements (58%) are verification-ready today; 4 have a harness gap; 10 (30%) cannot be tested as worded.** On the BRD's own unaided terms — excluding the nine rows testable only because a fixed spec or an explicit agent-level decision supplied a contract the document itself lacks — the figure is closer to **10 of 33 (30%)**, only a slight improvement on the prior two passes' ~20–27% and consistent with `docs/worktree-brd-review.md`'s own observation that the BRD text hasn't moved even though the specs and decisions around it keep improving.
 
-**Both of the prior pass's highest-priority blockers are resolved:** the stale export hard-gate is fixed, and the plaintext-vs-encryption FAIL-collision no longer exists now that authentication uses reversible encryption.
+**Both of the original pass's highest-priority blockers were already resolved** (stale export hard-gate; plaintext-vs-encryption FAIL-collision), **and this refresh closes three more, all via stakeholder decisions confirmed 2026-08-20:** the 2–3 minute consultation criterion now has a measurement method (workflow completeness, not a stopwatch); password recovery is a closed accepted-risk decision, not an open gap; and search match semantics are defined (contains matching).
 
-**What replaces them as the priorities for this pass:** the 2–3 minute consultation criterion still has no measurement method — the one gap in this entire document that isn't a schema question and can't be closed by a fixed spec, only by a BRD edit; password recovery went from "dissolved" to "open" as a direct consequence of the encryption-mechanism change, matching `docs/worktree-brd-review.md`'s AC-2; and search match semantics plus appointment slot-length/double-booking rules are genuinely new findings from this pass, neither previously flagged, because they're testability gaps a BA-level document has no particular reason to surface.
+**What's left:** appointment slot-length is now resolved, but **walk-in support and the double-booking rule are still open** — the one requirement in this document (row 3) still blocked on a decision rather than a number. Everything else remaining in the "not testable as worded" bucket needs either a missing number (Part 2) or a BRD-text edit, none of which are schema-shaped or urgent in the way the four just-resolved items were.
 
-**The encouraging part, again from the verification side:** every decision that would unblock testing here is a decision `docs/implementation-brd-review.md` or `docs/worktree-brd-review.md` already names and already proposes an answer for — nothing in this document requires new investigation. One decision session, plus the handful of missing numbers in Part 2, moves verification-readiness from 48% to nearly complete.
+**The encouraging part, again from the verification side:** every remaining decision that would unblock testing here is a decision `docs/implementation-brd-review.md` or `docs/worktree-brd-review.md` already names and already proposes an answer for — nothing in this document requires new investigation. One more decision (walk-in + double-booking), plus the handful of missing numbers in Part 2, moves verification-readiness from 58% to nearly complete.
 
 **What I did not do:** no application code, no tests, no BRD edits, no edits to either agent configuration file.
