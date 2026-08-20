@@ -32,6 +32,7 @@ public class MigrationSmokeTests
             var appliedMigrations = await db.Database.GetAppliedMigrationsAsync();
             Assert.Contains(appliedMigrations, m => m.EndsWith("_InitialCreate"));
             Assert.Contains(appliedMigrations, m => m.EndsWith("_AddUsers"));
+            Assert.Contains(appliedMigrations, m => m.EndsWith("_AddDoctorDetails"));
         }
         finally
         {

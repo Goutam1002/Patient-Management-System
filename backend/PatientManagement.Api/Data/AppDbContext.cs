@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<DoctorDetails> DoctorDetails => Set<DoctorDetails>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +23,12 @@ public class AppDbContext : DbContext
         {
             entity.Property(u => u.Username).IsRequired();
             entity.Property(u => u.Password).IsRequired();
+        });
+
+        modelBuilder.Entity<DoctorDetails>(entity =>
+        {
+            entity.Property(d => d.ClinicName).IsRequired();
+            entity.Property(d => d.DoctorName).IsRequired();
         });
     }
 }
