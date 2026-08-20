@@ -1,0 +1,17 @@
+# Implementation Progress — Patient Management App
+
+**Branch/worktree:** `brd/review-report` (`.claude/worktrees/brd-review-report`) — `EnterWorktree` refused a nested worktree (session already inside one); creating a sibling worktree via `git worktree add` would have excluded uncommitted edits to `implementation-brd.md`/`CLAUDE.md` this work depends on. Building directly here instead, per `implementation-brd.md`'s documented fallback. Only implementation-work commits are made by this process — pre-existing uncommitted changes in this worktree are left untouched.
+**Plan:** `docs/plan-brd-review.md`, Steps 1–6 (Phase 0: Scaffold; Phase 1: Data model & migrations) — session scope confirmed with the user.
+**Dev database:** `(localdb)\MSSQLLocalDB` — SQL Server LocalDB, already registered on this machine. `docs/brainstorm-brd-review.md` §3.3 recommends SQL Server Express (named instance) for the doctor's actual deployment machine; LocalDB is used here for development only, connection string swappable later without a code change.
+**Fixed spec version note:** built against `implementation-brd.md` as edited by the user this session — Angular **19**, .NET **10** Web API, Bootstrap 5.x for styling (pinned versions, not "latest").
+
+| Step | Plan Phase | Status | Files | Tests | Commit | Notes |
+|---|---|---|---|---|---|---|
+| 1 | Scaffold Angular 19 + .NET 10 Web API + local SQL Server wiring | Done | `frontend/*` (Angular 19 workspace, Bootstrap 5 wired into `angular.json`, `src/environments/*`), `backend/PatientManagement.slnx`, `backend/PatientManagement.Api/*` (Program.cs, appsettings.json, `Data/AppDbContext.cs`, `Migrations/*_InitialCreate.cs`) | Manual: `dotnet build` (0 warnings after bumping `Microsoft.AspNetCore.OpenApi` to 10.0.11, which also cleared a NU1903 high-severity advisory on the template-default `Microsoft.OpenApi` 2.0.0); `ng build` (bundle budget raised 500kB→700kB to account for Bootstrap, still well under the 1MB error threshold); `dotnet ef database update` on the empty context succeeded against `(localdb)\MSSQLLocalDB` (created the `PatientManagement` DB + `__EFMigrationsHistory`); `dotnet run` confirmed Kestrel listens on `http://localhost:5212` and serves `/openapi/v1.json`. | — (uncommitted) | Solution file is `.slnx` (new .NET 10 SDK default format), not the plan's assumed `.sln` — functionally equivalent, noted as a naming deviation. Removed template-default `WeatherForecast.cs`/`WeatherForecastController.cs`. Dev connection string uses `(localdb)\MSSQLLocalDB` per this progress file's header note (Windows-auth, no secret to manage). CORS policy reads the Angular origin from `AngularDevServerOrigin` config (`http://localhost:4200`). |
+| 2 | `Users` entity + auth secret | Not started | | | | |
+| 3 | `DoctorDetails` entity | Not started | | | | |
+| 4 | `Patient` entity | Not started | | | | |
+| 5 | `Appointment` + `Visit` entities | Not started | | | | |
+| 6 | `Prescription` + `PrescriptionItem` entities | Not started | | | | |
+
+Status is one of: `Not started`, `In progress`, `Done`, `Blocked` (blocker named in Notes).
