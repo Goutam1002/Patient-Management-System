@@ -6,7 +6,7 @@
 
 **A load-bearing distinction this review makes throughout:** a decision can be *resolved for the build* (it's pinned down in `implementation-brd.md`) while still being *undocumented in the BRD itself* (`BRD/Doc_BRD.md`'s text hasn't changed). Those get a lower severity than a decision that's genuinely unresolved anywhere — but they're still findings, because the BRD is supposed to be the source of truth, and right now a reader of the BRD alone would not know about several decisions that already govern the build.
 
-**Refreshed 2026-08-20 (second pass)** against stakeholder decisions confirmed since the initial pass, now recorded in `.claude/agents/implementation-brd.md` and `.claude/agents/verification-brd.md`: (1) the 2–3 minute consultation criterion is confirmed to mean *workflow completeness*, not a literal stopwatch measurement, closing CR-1; (2) password-reset/recovery functionality is explicitly not required for Phase 1, an accepted-risk decision that closes AC-2; (3) **walk-in patients are explicitly supported** — appointments are preferred, but the doctor also fits walk-ins into availability between scheduled patients, and a walk-in creates its own appointment record at registration/consultation time so `Visit.AppointmentId` stays linked either way — closing MR-1; (4) **double booking is rejected** — only one appointment may exist per date/time slot. All four are marked **Resolved** below rather than removed, so the reasoning and each decision stay visible. (Search-uses-contains-matching and appointment-slot-duration-is-doctor-entered, confirmed in the first refresh pass, don't correspond to open findings in *this* document; see `docs/verification-brd-review.md` for those.)
+**Refreshed 2026-08-20 (third pass)** against two more stakeholder decisions: **`EmergencyContactName`/`EmergencyContactPhone` are now confirmed additions to `Patient`**, closing HC-1 (previously the last Critical finding besides the backup mechanism); and **no separate `MedicalSurgicalHistory` field is needed for Phase 1** — the per-visit prescription record is considered sufficient history — closing HC-2 as an explicit accepted-scope decision rather than a gap. Both are recorded in `.claude/agents/implementation-brd.md` and `.claude/agents/verification-brd.md` and marked **Resolved** below. (Prior refresh passes closed CR-1, AC-2, MR-1, and the double-booking rule — see the history in each finding's own section below.)
 
 ---
 
@@ -16,39 +16,38 @@ This is a meaningfully stronger position than the BRD's text alone would suggest
 
 Four things matter most:
 
-1. **Only one Critical finding in this entire document has no owner: there is no backup mechanism actually adopted** (only a brainstorm recommendation, not a decision). Every other Critical finding from the initial pass — password recovery and, as of this refresh, walk-in support — is now a closed, documented decision.
-2. **The walk-in question is resolved.** Appointments are preferred, but walk-ins are explicitly supported: the doctor fits them into availability between scheduled patients, and a walk-in creates its own appointment record at registration/consultation time, so `Visit.AppointmentId` stays linked (non-nullable) either way. Double booking is rejected outright — only one appointment per date/time slot. This closes MR-1 and, with it, the last blocker on starting the Appointment/Visit implementation slice.
-3. **Emergency contact and medical/surgical history are still missing from the healthcare-domain field set**, even after `implementation-brd.md`'s fixed Patient spec added Allergies/CurrentMedications/ChronicConditions. The domain gap wasn't fully closed, it was partially closed. This is now the only Critical finding in this document that isn't a backup-mechanism-adoption question.
-4. **Measurability is still the weakest dimension by far.** Of the BRD's 9 NFRs, only one (`page load < 2s`) is independently testable as written. This hasn't improved since baseline — none of the stack/spec decisions touch vague language, because that's a documentation problem, not an implementation one. (The 2–3 minute consultation Success Criterion is the one exception — its interpretation is now settled; see CR-1, Resolved.)
+1. **Exactly one Critical finding remains in this entire document, and it's the same one for three refresh passes running: there is no backup mechanism actually adopted** (only a brainstorm recommendation, not a decision). Every other Critical finding raised across the initial pass and all three refreshes — password recovery, walk-in support, and, as of this refresh, emergency contact — is now a closed, documented decision.
+2. **The walk-in question and double booking are resolved** (closed in the prior refresh): appointments are preferred, walk-ins fit into availability between scheduled patients, and a walk-in creates its own linked appointment record. `Visit.AppointmentId` stays non-nullable either way.
+3. **The healthcare-domain field set is now materially complete for what Phase 1 actually needs.** `Patient` carries Allergies/CurrentMedications/ChronicConditions/EmergencyContactName/EmergencyContactPhone. Medical/surgical history was considered and explicitly declined — the per-visit prescription record is judged sufficient history for now, a deliberate scope call rather than an omission. What remains (Height/SpO2/BMI, HC-3) is Medium severity and explicitly framed as a stakeholder's call to make, not a gap to close unilaterally.
+4. **Measurability is still the weakest dimension by far, and the one area none of these decisions have touched.** Of the BRD's 9 NFRs, only one (`page load < 2s`) is independently testable as written. This hasn't improved since baseline — vague language is a documentation problem, not a data-model or scope decision, so none of the six decisions confirmed across three refresh passes move this number. (The 2–3 minute consultation Success Criterion is the one exception — its interpretation is now settled; see CR-1, Resolved.)
 
-**Is this document currently safe to build from?** Yes, more broadly than before. The stack and most of the data-model/feature shape are genuinely build-ready (via `implementation-brd.md`, not via the BRD text itself), and — for the first time in this document's history — **no feature slice in `docs/plan-brd-review.md` is blocked by an unresolved BRD-level decision.** The backup mechanism (AC-1) still needs an owner before the app is considered done, not just before it's considered "started," but it's an operational gate, not a feature blocker.
+**Is this document currently safe to build from?** Yes, essentially without qualification on the feature side. Every feature slice in `docs/plan-brd-review.md`, including Patient and Appointment/Visit, is now build-ready against `implementation-brd.md`'s fixed specs, with zero unresolved BRD-level decisions blocking any of them. The backup mechanism (AC-1) is the one remaining item that must be adopted before general release — an operational gate, not a feature blocker, and the only thing standing between this document and a clean "ship it" verdict.
 
 ---
 
-## BRD Quality Score: 6.5 / 10
+## BRD Quality Score: 6.8 / 10
 
-- **Completeness (functional + domain coverage): 7.0** *(up from 6.5)* — Walk-in/double-booking (MR-1) is now a resolved functional requirement rather than a named gap. Domain gaps remain: emergency contact and medical/surgical history are absent everywhere, not just in the BRD text.
-- **Consistency (freedom from contradiction): 8.0** *(up from 7.5)* — The `Schedule appointments` row's `No-show`-implies-walk-ins tension is now resolved alongside CR-1. Remaining tensions: a duplicated search requirement (CR-4), "secure login" vs. the accepted reversible-encryption tradeoff (CR-3).
-- **Testability (share of requirements with measurable acceptance criteria): 4.5** — Unchanged. 1 of 9 NFRs and 3 of 6 Success Criteria are independently testable as written; this dimension hasn't moved since baseline — resolving MR-1 made `Schedule appointments` testable (see Development Readiness below), but that's a different axis than NFR/SC measurability.
-- **Architecture readiness (share of architectural decisions documented): 7.0** — Unchanged this pass. Password recovery is a closed, accepted-risk decision; walk-in/double-booking is tracked under Completeness (Missing Requirement), not here. Backup/restore is still genuinely open, not just undocumented.
-- **Traceability (requirements linked to a clear source/rationale): 6.0** *(up from 5.5)* — A third and fourth decision (walk-in support, double booking) now have documented rationale in `implementation-brd.md`/`verification-brd.md`, though — like the rest of this dimension's gap — none of the four are copied back into `BRD/Doc_BRD.md` itself yet. A reader of the BRD alone still cannot discover that `Patient` now has Allergies, that `PatientId` starts at 0, or that walk-ins are supported.
+- **Completeness (functional + domain coverage): 8.0** *(up from 7.0)* — Emergency contact is now a resolved field addition, and medical/surgical history is a deliberate, documented scope exclusion rather than a silent gap. What remains (Height/SpO2/BMI, HC-3; "recent patients" ranking, MR-2) is Medium/High, not Critical.
+- **Consistency (freedom from contradiction): 8.0** — Unchanged this pass; HC-1/HC-2 were domain-completeness findings, not contradictions.
+- **Testability (share of requirements with measurable acceptance criteria): 4.5** — Unchanged. 1 of 9 NFRs and 3 of 6 Success Criteria are independently testable as written; resolving healthcare-domain gaps doesn't touch this axis.
+- **Architecture readiness (share of architectural decisions documented): 7.0** — Unchanged this pass. Backup/restore (AC-1) remains the only genuinely open architecture item.
+- **Traceability (requirements linked to a clear source/rationale): 6.5** *(up from 6.0)* — Two more decisions (emergency contact, no-medical-surgical-history) now have documented rationale in `implementation-brd.md`/`verification-brd.md`. Six decisions total across three refresh passes now live there instead of in `BRD/Doc_BRD.md` — the traceability gap is narrowing in substance even though the BRD text itself is still unchanged.
 
 ---
 
 ## Development Readiness: 63%
 
-(requirements that are unambiguous AND non-contradictory AND testable AND not blocked by an undocumented architecture decision) ÷ (total requirements) × 100 — **20 of 32 requirements are build-ready as written** (17 Functional + 9 NFR + 6 Success Criteria = 32; see the matrix below for the per-requirement call).
+(requirements that are unambiguous AND non-contradictory AND testable AND not blocked by an undocumented architecture decision) ÷ (total requirements) × 100 — **20 of 32 requirements are build-ready as written** (17 Functional + 9 NFR + 6 Success Criteria = 32; see the matrix below for the per-requirement call). Unchanged this pass — HC-1/HC-2 affect Healthcare Completeness, not the requirement-level Testable/Consistency calls the Patient row already carried.
 
-This is a real improvement over the prior baseline (26%), driven almost entirely by `implementation-brd.md`'s fixed specs resolving what used to be open data-model and architecture questions — most recently, `Schedule appointments` moving from blocked to ready now that walk-in/double-booking are resolved. It has not improved on the NFR/measurability axis at all — that requires editing the BRD's language, which no amount of implementation-spec work fixes.
+This is a real improvement over the prior baseline (26%), driven almost entirely by `implementation-brd.md`'s fixed specs resolving what used to be open data-model and architecture questions. It has not improved on the NFR/measurability axis at all — that requires editing the BRD's language, which no amount of implementation-spec or scope-decision work fixes.
 
 ---
 
 ## Critical Findings
 
-1. **No backup mechanism is actually adopted anywhere** — the BRD requires "regular automated backups," `implementation-brd.md` doesn't assign one, and `docs/brainstorm-brd-review.md`'s proposal is a recommendation, not a decision. See Architecture Completeness Report, AC-1.
-2. **Emergency contact is entirely absent** from the Patient data model, in the BRD and in every fixed spec. For a system recording vitals and prescribing medication, there is no path to reach anyone if a patient has an adverse event at the clinic. See Healthcare Completeness Report, HC-1.
+1. **No backup mechanism is actually adopted anywhere** — the BRD requires "regular automated backups," `implementation-brd.md` doesn't assign one, and `docs/brainstorm-brd-review.md`'s proposal is a recommendation, not a decision. See Architecture Completeness Report, AC-1. **This is now the only Critical finding in the entire document.**
 
-*Resolved since the initial pass:* no password-recovery path for the single doctor account was previously Critical Finding #2 — the stakeholder has confirmed this is an accepted Phase 1 exclusion, not a gap (see Architecture Completeness Report, AC-2, now Resolved). Walk-in patients being structurally unsupported was previously Critical Finding #3 — walk-ins are now explicitly supported, with double booking explicitly rejected (see Missing Requirement Report, MR-1, now Resolved).
+*Resolved across the three refresh passes:* no password-recovery path for the single doctor account (accepted Phase 1 exclusion — see Architecture Completeness Report, AC-2, now Resolved); walk-in patients being structurally unsupported (walk-ins are now explicitly supported, double booking explicitly rejected — see Missing Requirement Report, MR-1, now Resolved); emergency contact being entirely absent from the Patient data model (`EmergencyContactName`/`EmergencyContactPhone` are now confirmed fields — see Healthcare Completeness Report, HC-1, now Resolved).
 
 ---
 
@@ -56,7 +55,7 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 
 | Requirement | Category | Classification | Scope tag | Consistency | Testable | Notes |
 |---|---|---|---|---|---|---|
-| Add/edit/view patient details + capture Name/Age-DOB/Gender/Contact | Functional | Existing | [in scope] | OK | Yes | Field set extended by `implementation-brd.md` (Allergies, CurrentMedications, ChronicConditions) — not reflected in BRD text (see AC-6). |
+| Add/edit/view patient details + capture Name/Age-DOB/Gender/Contact | Functional | Existing | [in scope] | OK | Yes | Field set extended by `implementation-brd.md` (Allergies, CurrentMedications, ChronicConditions, EmergencyContactName, EmergencyContactPhone — see HC-1, Resolved) — not reflected in BRD text (see AC-6). Medical/Surgical History deliberately excluded — see HC-2, Resolved. |
 | Search patients by name/phone | Functional | Existing | [in scope] | Conflicts with: Search & Navigation "Quick patient search" | Yes | Near-duplicate requirement across two BRD sections — see Contradiction Report, CR-4. |
 | Schedule appointments | Functional | Existing | [in scope] | OK — see MR-1 (Resolved) | Yes | Walk-ins supported (appointment auto-created at registration/consultation) and double booking rejected — see `.claude/agents/implementation-brd.md`. |
 | View daily appointment list | Functional | Existing | [in scope] | OK | Yes | — |
@@ -145,19 +144,22 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 
 ## Healthcare Completeness Report
 
-### HC-1: Emergency contact is entirely absent
-- **Severity:** Critical
-- **Business Impact:** A clinical setting that records vitals and administers treatment has a real, if infrequent, chance of an adverse event during a visit (a bad reaction, a fall, a medical emergency). With no emergency contact on file, the clinic has no fast path to reach family in that scenario.
-- **Technical Impact:** Not present in the BRD, and not added by `implementation-brd.md`'s fixed Patient spec either — this gap wasn't closed by the implementation lock-in, it was missed by it too.
-- **Recommendation:** Add an `EmergencyContactName`/`EmergencyContactPhone` pair to the Patient data model.
-- **Suggested BRD Text:** Add under Patient Management § Capture: *"Emergency Contact Name and Emergency Contact Phone (optional but strongly recommended at registration)."*
+### HC-1: Emergency contact is entirely absent — **RESOLVED**
+- **Severity:** Critical *(closed 2026-08-20)*
+- **Resolution:** Confirmed by the stakeholder and now recorded in `.claude/agents/implementation-brd.md` and `.claude/agents/verification-brd.md`: `Patient` carries `EmergencyContactName` and `EmergencyContactPhone`, alongside the already-fixed Allergies/CurrentMedications/ChronicConditions.
+- **Business Impact (as originally raised):** A clinical setting that records vitals and administers treatment has a real, if infrequent, chance of an adverse event during a visit. With no emergency contact on file, the clinic had no fast path to reach family in that scenario — now resolved.
+- **Technical Impact (as originally raised):** Not present in the BRD, and not added by the fixed Patient spec at the time HC-1 was first raised. Closed in the same pass that also resolved HC-2.
+- **Residual documentation gap (Low, not Critical):** Like the other resolved findings in this report, this decision lives in the agent config files, not in `BRD/Doc_BRD.md` itself.
+- **Suggested BRD Text:** Add under Patient Management § Capture: *"Emergency Contact Name and Emergency Contact Phone."*
 
-### HC-2: Medical/surgical history is not distinguished from chronic conditions
-- **Severity:** High
-- **Business Impact:** `implementation-brd.md` added `ChronicConditions` and `CurrentMedications`, which cover ongoing state, but not past surgeries or resolved-but-relevant medical events (e.g., a prior cardiac event, a prior surgery) — information a GP would normally want before prescribing or diagnosing.
-- **Technical Impact:** No field exists anywhere for this; a doctor who wants to record it today has nowhere to put it but the free-text `Diagnosis`/`Complaints` fields, where it won't be reliably findable later.
-- **Recommendation:** Add a `MedicalSurgicalHistory` free-text field to Patient, parallel to the already-fixed `ChronicConditions`/`CurrentMedications`.
-- **Suggested BRD Text:** Add under Patient Management § Capture: *"Medical/Surgical History (free text) — past diagnoses, surgeries, or significant medical events relevant to ongoing care."*
+### HC-2: Medical/surgical history is not distinguished from chronic conditions — **RESOLVED (explicit exclusion)**
+- **Severity:** High *(closed 2026-08-20)*
+- **Resolution:** Confirmed by the stakeholder and now recorded in `.claude/agents/implementation-brd.md` and `.claude/agents/verification-brd.md`: no separate `MedicalSurgicalHistory` field in Phase 1. This is a deliberate scope decision, not an oversight — the per-visit prescription record is judged sufficient history for now.
+- **Business Impact (as originally raised, now an accepted tradeoff):** `ChronicConditions`/`CurrentMedications` cover ongoing state but not past surgeries or resolved-but-relevant events. The stakeholder has weighed a dedicated field against the per-visit prescription history already being maintained and judged the latter sufficient for Phase 1.
+- **Technical Impact:** None — no schema change follows from this decision either way; it closes the open question rather than adding anything.
+- **Residual documentation gap (Low, not High):** Like the other resolved findings in this report, this decision lives in the agent config files, not in `BRD/Doc_BRD.md` itself.
+- **Recommendation:** If this ever needs revisiting (e.g., the per-visit record proves insufficient for a specific clinical need), the field can be added later without disturbing existing data — it's purely additive.
+- **Suggested BRD Text:** Add under Patient Management § Capture, as a note rather than a new field: *"Medical/surgical history is not captured as a dedicated field in Phase 1; the per-visit prescription and diagnosis record is considered sufficient history."*
 
 ### HC-3: Height, weight-derived BMI, and SpO2 are inconsistently covered
 - **Severity:** Medium
@@ -245,7 +247,6 @@ The BRD states "Open Questions: None." That does not hold. Real open questions, 
 |---|---|---|---|---|
 | Local machine failure with no backup in place | Medium (any single machine eventually fails or is lost/stolen) | Total loss of all patient records | Critical | Adopt AC-1's backup mechanism before general release. |
 | Doctor forgets password, no recovery path | Low-Medium (rare but plausible over years of use) | Total lockout from the application until a support contact intervenes directly | **Accepted** *(was Critical)* | Stakeholder decision confirmed 2026-08-20: no password-reset functionality for Phase 1. Risk is understood and intentionally carried, with manual DB-level reset as the documented fallback — see AC-2. |
-| Adverse event during a visit, no emergency contact on file | Low (infrequent) but severe when it occurs | Delayed ability to reach family in a medical emergency | High | Add HC-1's Emergency Contact fields. |
 | "Secure login" read as stronger than the accepted reversible-encryption design | Medium (likely to surface in any later security review) | Reputational/audit-finding risk, not a live technical vulnerability given the no-network deployment | High | Document the accepted tradeoff per CR-3 before any external review happens. |
 
 ---
@@ -311,12 +312,12 @@ The BRD states "Open Questions: None." That does not hold. Real open questions, 
 
 ## Developer Readiness Assessment
 
-A developer **can** start building today against every feature slice in `docs/plan-brd-review.md`, including Appointment/Visit — those are genuinely well-specified once `implementation-brd.md` is read alongside the BRD (though it shouldn't have to be a second document; see AC-6). The walk-in question (MR-1) that previously blocked the Appointment/Visit slice is resolved: walk-ins are supported via an auto-created appointment record, and double booking is rejected. One thing blocks calling this "done" even after every feature ships: the backup mechanism (AC-1) — Critical, currently zero owner, not a UI polish item that can be deferred past general release. Password recovery (AC-2) and walk-in support (MR-1), previously two other such blockers, are both now closed decisions — no longer something to build toward or design around.
+A developer **can** start building today against every feature slice in `docs/plan-brd-review.md`, including Patient and Appointment/Visit — those are genuinely well-specified once `implementation-brd.md` is read alongside the BRD (though it shouldn't have to be a second document; see AC-6). Every Critical finding that ever blocked a feature slice — password recovery, walk-in support, and, as of this refresh, emergency contact — is now a closed decision. One thing blocks calling this "done" even after every feature ships: the backup mechanism (AC-1) — Critical, currently zero owner, not a UI polish item that can be deferred past general release, and now the *only* Critical finding left in this document.
 
 In priority order, what specifically blocks a clean build:
-1. Backup mechanism adoption (AC-1) — blocks general release, not initial development, and is now the only unresolved Critical finding in this document.
-2. Everything else in this report is real but non-blocking — clinical field additions (HC-1/HC-2/HC-3), measurability rewrites (TR-1 through TR-9), and documentation-consistency fixes (AC-4/AC-5/AC-6) can land incrementally without stopping feature work.
+1. Backup mechanism adoption (AC-1) — blocks general release, not initial development, and is the sole remaining Critical finding in this document.
+2. Everything else in this report is real but non-blocking — the remaining clinical field question (HC-3: Height/SpO2/BMI, a genuine stakeholder call), measurability rewrites (TR-1 through TR-9), and documentation-consistency fixes (AC-4/AC-5/AC-6) can land incrementally without stopping feature work.
 
 ## Final Verdict
 
-**Ship the consultation/patient/prescription/export build now; the Appointment/Visit slice is unblocked and can proceed too; do not ship general release without a backup mechanism.** With walk-in support (MR-1) and password recovery (AC-2) both now resolved as explicit decisions, the backup mechanism (AC-1) is the last Critical finding with no owner in this document — the single thing that would move this verdict most is adopting a concrete mechanism (`docs/brainstorm-brd-review.md` §3.5 already proposes one) before general release, even if it's decided after most feature work is built.
+**Ship the full build now — patient, appointment/visit, consultation, prescription, and export are all unblocked; do not ship general release without a backup mechanism.** With password recovery (AC-2), walk-in support (MR-1), and emergency contact (HC-1) all now resolved as explicit decisions, the backup mechanism (AC-1) is the single Critical finding with no owner left in this document — the one thing that would move this verdict from "ship the build" to "ship, full stop" is adopting a concrete mechanism (`docs/brainstorm-brd-review.md` §3.5 already proposes one) before general release, even if it's decided after most feature work is built.
