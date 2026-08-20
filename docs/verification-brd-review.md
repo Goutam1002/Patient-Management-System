@@ -7,7 +7,7 @@
 **Grounded in:** `docs/worktree-brd-review.md` @ commit `7c8e0ea` (its Requirement Analysis Matrix, Contradiction Report, Healthcare/Architecture Completeness Reports, and Testability Review), `docs/implementation-brd-review.md` @ commit `3f811bd` (build-readiness), and `docs/plan-brd-review.md` (the plan `verification-brd`'s own instructions call "the plan being implemented").
 **Scope:** assessment only. No application code, no tests, no BRD edits, no edits to any agent configuration file.
 
-**Refreshed 2026-08-20 (third pass)** against two more stakeholder decisions: **`EmergencyContactName`/`EmergencyContactPhone` are now confirmed `Patient` fields**, and **no separate `MedicalSurgicalHistory` field is needed for Phase 1** (an explicit accepted exclusion — the per-visit prescription record is judged sufficient). Neither changes row 1's status (it was already "testable now"), but both close the caveat that row previously carried, and both get a new gate in Part 3's Patient/Vitals table. (Second-pass decisions — walk-in support, double booking — and first-pass decisions — consultation-timing interpretation, no password reset, contains-search, doctor-entered slot duration — remain reflected as before.)
+**Refreshed 2026-08-20 (fourth pass)** against one more stakeholder decision: **"recent patients" is confirmed ordered by most-recent visit date**, not registration date. Row 14 moves from "not testable as worded" to "testable now" — the ranking ambiguity that made it untestable is gone. (Third-pass decisions — emergency contact, no medical/surgical history — and earlier passes — walk-in support, double booking, consultation-timing interpretation, no password reset, contains-search, doctor-entered slot duration — remain reflected as before.)
 
 ---
 
@@ -19,12 +19,12 @@ What follows instead is the question my own test-strategy section and hard gates
 
 The comparison that matters:
 
-| | Prior pass (`b31eaab`) | Initial current-BRD pass | After first 2026-08-20 refresh | After second 2026-08-20 refresh |
-|---|---|---|---|---|
-| Testable now | 14 of 35 (40%) | 16 of 33 (48%) | 19 of 33 (58%) | **20 of 33 (61%)** |
-| Harness gap | 3 of 35 (9%) | 4 of 33 (12%) | 4 of 33 (12%) | **4 of 33 (12%)** |
-| Not testable as worded | 18 of 35 (51%) | 13 of 33 (39%) | 10 of 33 (30%) | **9 of 33 (27%)** |
-| Testable using the BRD's own text alone (no fixed-spec/agent-decision assist) | ~7 of 35 (20%) | ~9 of 33 (27%) | ~10 of 33 (30%) | **~10 of 33 (30%)** |
+| | Prior pass (`b31eaab`) | Initial current-BRD pass | After 1st refresh | After 2nd refresh | After 3rd refresh | After 4th refresh |
+|---|---|---|---|---|---|---|
+| Testable now | 14 of 35 (40%) | 16 of 33 (48%) | 19 of 33 (58%) | 20 of 33 (61%) | 20 of 33 (61%) | **21 of 33 (64%)** |
+| Harness gap | 3 of 35 (9%) | 4 of 33 (12%) | 4 of 33 (12%) | 4 of 33 (12%) | 4 of 33 (12%) | **4 of 33 (12%)** |
+| Not testable as worded | 18 of 35 (51%) | 13 of 33 (39%) | 10 of 33 (30%) | 9 of 33 (27%) | 9 of 33 (27%) | **8 of 33 (24%)** |
+| Testable using the BRD's own text alone (no fixed-spec/agent-decision assist) | ~7 of 35 (20%) | ~9 of 33 (27%) | ~10 of 33 (30%) | ~10 of 33 (30%) | ~10 of 33 (30%) | **~10 of 33 (30%)** |
 
 (Row count dropped from 35 to 33 because this pass reuses `docs/worktree-brd-review.md`'s 32-row Requirement Analysis Matrix plus one Exclusions row, rather than re-deriving a separate count — the two documents should stay comparable, not diverge on how they count the same BRD.)
 
@@ -43,7 +43,7 @@ The comparison that matters:
 
 ## Verdict, up front
 
-**20 of 33 requirements are verification-ready today. 4 are testable in principle but have no harness or dataset defined. 9 (27%) cannot be tested at all as worded.**
+**21 of 33 requirements are verification-ready today. 4 are testable in principle but have no harness or dataset defined. 8 (24%) cannot be tested at all as worded.**
 
 The prior pass's two highest-priority blockers are both resolved:
 
@@ -57,7 +57,11 @@ The prior pass's two highest-priority blockers are both resolved:
 3. **Search match semantics are now defined** — contains (substring) matching on both name and phone. Rows 2 and 13 move from "not testable as worded" to "testable now."
 4. **Appointment slot duration is now defined** — doctor-entered per appointment.
 
-**A second refresh (also 2026-08-20) closes the one item the first refresh left open:** walk-in support and the double-booking rule are now both defined. Appointments are preferred, but a walk-in is explicitly supported — the system creates its own linked appointment record at registration/consultation, so `Visit.AppointmentId` stays populated either way — and double booking (two appointments for the same date/time slot) is explicitly rejected, whether the conflicting appointment was scheduled or walk-in-generated. Row 3 moves from "not testable as worded" to "testable now," closing the last decision-gated row in this document (see Part 1, Part 2).
+**A second refresh (also 2026-08-20) closes the one item the first refresh left open:** walk-in support and the double-booking rule are now both defined. Appointments are preferred, but a walk-in is explicitly supported — the system creates its own linked appointment record at registration/consultation, so `Visit.AppointmentId` stays populated either way — and double booking (two appointments for the same date/time slot) is explicitly rejected, whether the conflicting appointment was scheduled or walk-in-generated. Row 3 moves from "not testable as worded" to "testable now," closing the last decision-gated row in this document at that point (see Part 1, Part 2).
+
+**A third refresh (also 2026-08-20) closed a caveat, not a row:** `EmergencyContactName`/`EmergencyContactPhone` are confirmed `Patient` fields, and `MedicalSurgicalHistory` is a confirmed Phase 1 exclusion — row 1 no longer carries an asterisk about the entity's completeness, and Part 3's Patient/Vitals gates gained two more fully-specified rows.
+
+**A fourth refresh (also 2026-08-20) closes the row that opened this document's remaining "no defined ranking" gap:** "recent patients" is confirmed ordered by most-recent visit date. Row 14 moves from "not testable as worded" to "testable now."
 
 ---
 
@@ -80,7 +84,7 @@ Rows mirror `docs/worktree-brd-review.md`'s Requirement Analysis Matrix, in the 
 | 11 | View previous visits + vitals/complaints/dx/Rx | **Testable now** | Integration: a patient with N visits returns N visits with children eager-loaded. |
 | 12 | Filter history by date | **Testable now** | Integration: range boundaries inclusive/exclusive, empty range returns empty. Same clinic-day-boundary caveat as row 4. |
 | 13 | Quick patient search (Search & Navigation) | **Testable now** *(was "not testable as worded")* | Inherits row 2's resolution — this is `docs/worktree-brd-review.md`'s CR-4 duplicate requirement, so it inherits row 2's status rather than having its own. |
-| 14 | View recent patients | **Not testable as worded** | `docs/worktree-brd-review.md` MR-2 (High): no defined ranking (registration-recency vs. visit-recency) or count. Trivial integration test once defined. |
+| 14 | View recent patients | **Testable now** *(was "not testable as worded")* | **Resolved 2026-08-20** (`docs/worktree-brd-review.md` MR-2, now Resolved). Ordered by most-recent visit date, not registration date. Integration: a patient registered earlier but visited more recently sorts ahead of one registered later but visited longer ago (or not visited at all) — a direct, parameterized test. |
 | 15 | Navigation between profile and visits | **Testable now (shallow)** | Component/routing test proves a route exists and is reachable — but "easy" carries no click-budget, so a *regression* in navigation friction (an extra required click added later) has nothing to fail against. Proves existence, not quality. |
 | 16 | Export data as CSV | **Testable now** | Fully specified; see Part 3, Export gates. The prior pass's stale-hard-gate issue is resolved — this row is unconditionally testable against the current gate list. |
 | 17 | Export data as PDF | **Testable now** | Integration: single-patient only (no bulk entry point); extracted text contains demographics/visit history/prescriptions; an out-of-range visit is absent; confirmation and audit-log gates apply identically to CSV. |
@@ -105,16 +109,16 @@ Rows mirror `docs/worktree-brd-review.md`'s Requirement Analysis Matrix, in the 
 
 | Status | Count | Share |
 |---|---|---|
-| **Testable now** | **20** | 61% |
+| **Testable now** | **21** | 64% |
 | **Harness gap** | **4** | 12% |
-| **Not testable as worded** | **9** | 27% |
+| **Not testable as worded** | **8** | 24% |
 | Total | 33 | |
 
-**Testable now:** rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 23, 27, 31, 33.
+**Testable now:** rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 23, 27, 31, 33.
 **Harness gap:** rows 19, 22, 26, 28.
-**Not testable as worded:** rows 14, 18, 20, 21, 24, 25, 29, 30, 32.
+**Not testable as worded:** rows 18, 20, 21, 24, 25, 29, 30, 32.
 
-**Read the 20 carefully.** Rows 1 (partially), 2, 3, 6, 10, 13, 16, 17, 23, and 27 are verifiable *only because a fixed spec or an explicit agent-level decision supplied a contract the BRD text itself does not contain* — ten of twenty. On the BRD's own unaided terms, the genuinely verification-ready set is closer to **10 of 33 (30%)**, essentially flat since the first refresh — a much smaller improvement than the headline 58%→61% suggests, because the BRD's own text hasn't changed at all; every gain across both refresh passes comes from specs and decisions sitting alongside it, not from the document itself.
+**Read the 21 carefully.** Rows 1 (partially), 2, 3, 6, 10, 13, 14, 16, 17, 23, and 27 are verifiable *only because a fixed spec or an explicit agent-level decision supplied a contract the BRD text itself does not contain* — eleven of twenty-one. On the BRD's own unaided terms, the genuinely verification-ready set is still closer to **10 of 33 (30%)**, essentially flat across every refresh pass — a much smaller improvement than the headline 48%→64% suggests, because the BRD's own text hasn't changed at all; every gain across all four refresh passes comes from specs and decisions sitting alongside it, not from the document itself.
 
 ---
 
@@ -220,12 +224,12 @@ Cases where a unit or integration test can pass while the requirement remains un
 
 ## Final verdict
 
-**20 of 33 requirements (61%) are verification-ready today; 4 have a harness gap; 9 (27%) cannot be tested as worded.** On the BRD's own unaided terms — excluding the ten rows testable only because a fixed spec or an explicit agent-level decision supplied a contract the document itself lacks — the figure is closer to **10 of 33 (30%)**, essentially flat since the first refresh and only a modest improvement on the original pass's ~27%, consistent with `docs/worktree-brd-review.md`'s own observation that the BRD text hasn't moved even though the specs and decisions around it keep improving.
+**21 of 33 requirements (64%) are verification-ready today; 4 have a harness gap; 8 (24%) cannot be tested as worded.** On the BRD's own unaided terms — excluding the eleven rows testable only because a fixed spec or an explicit agent-level decision supplied a contract the document itself lacks — the figure is still closer to **10 of 33 (30%)**, essentially flat across every refresh pass, consistent with `docs/worktree-brd-review.md`'s own observation that the BRD text hasn't moved even though the specs and decisions around it keep improving.
 
-**Both of the original pass's highest-priority blockers were already resolved** (stale export hard-gate; plaintext-vs-encryption FAIL-collision). **The first 2026-08-20 refresh closed three more** (consultation-timing measurement method, password recovery, search match semantics). **The second refresh closed the last decision-gated row** (walk-in support and the double-booking rule). **This third refresh doesn't change any row's status, but closes a caveat**: row 1 (Patient) no longer carries an "Emergency Contact/Medical-Surgical History not yet in the fixed spec" asterisk — both are now settled (one added, one explicitly excluded), and Part 3's Patient/Vitals gates gained two more fully-specified rows as a result.
+**Both of the original pass's highest-priority blockers were already resolved** (stale export hard-gate; plaintext-vs-encryption FAIL-collision). **The first refresh closed three more** (consultation-timing measurement method, password recovery, search match semantics). **The second refresh closed the last decision-gated row at that point** (walk-in support and the double-booking rule). **The third refresh closed a caveat, not a row** (Patient row's Emergency Contact/Medical-Surgical History asterisk). **This fourth refresh closes another row**: "recent patients" is now ordered by most-recent visit date, resolving row 14.
 
-**What's left is entirely numbers-and-wording work, not decisions.** Every remaining row in the "not testable as worded" bucket (Part 2) needs either a missing number (interaction budget, RPO/RTO, dataset volume, onboarding-time target) or a BRD-text edit for vague language ("smooth," "moderate volume") — none of it schema-shaped, and none of it blocking any plan step. Across all three refresh passes, every decision-gated finding in this document has now been closed; what remains is documentation work, not open questions.
+**What's left is entirely numbers-and-wording work, not decisions.** Every remaining row in the "not testable as worded" bucket (Part 2) needs either a missing number (interaction budget, RPO/RTO, dataset volume, onboarding-time target) or a BRD-text edit for vague language ("smooth," "moderate volume") — none of it schema-shaped, and none of it blocking any plan step. Across all four refresh passes, every decision-gated finding in this document has now been closed; what remains is documentation work, not open questions.
 
-**The encouraging part, again from the verification side:** every remaining item that would improve testability here is a number `docs/worktree-brd-review.md`'s Testability Review already proposes a value for — nothing in this document requires new investigation or a further decision session. Writing those numbers into the BRD, plus adopting the backup mechanism (row 22's remaining harness-gap), is what would move verification-readiness from 61% toward nearly complete.
+**The encouraging part, again from the verification side:** every remaining item that would improve testability here is a number `docs/worktree-brd-review.md`'s Testability Review already proposes a value for — nothing in this document requires new investigation or a further decision session. Writing those numbers into the BRD, plus adopting the backup mechanism (row 22's remaining harness-gap), is what would move verification-readiness from 64% toward nearly complete.
 
 **What I did not do:** no application code, no tests, no BRD edits, no edits to either agent configuration file.
