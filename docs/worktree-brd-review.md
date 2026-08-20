@@ -6,7 +6,7 @@
 
 **A load-bearing distinction this review makes throughout:** a decision can be *resolved for the build* (it's pinned down in `implementation-brd.md`) while still being *undocumented in the BRD itself* (`BRD/Doc_BRD.md`'s text hasn't changed). Those get a lower severity than a decision that's genuinely unresolved anywhere — but they're still findings, because the BRD is supposed to be the source of truth, and right now a reader of the BRD alone would not know about several decisions that already govern the build.
 
-**Refreshed 2026-08-20 (third pass)** against two more stakeholder decisions: **`EmergencyContactName`/`EmergencyContactPhone` are now confirmed additions to `Patient`**, closing HC-1 (previously the last Critical finding besides the backup mechanism); and **no separate `MedicalSurgicalHistory` field is needed for Phase 1** — the per-visit prescription record is considered sufficient history — closing HC-2 as an explicit accepted-scope decision rather than a gap. Both are recorded in `.claude/agents/implementation-brd.md` and `.claude/agents/verification-brd.md` and marked **Resolved** below. (Prior refresh passes closed CR-1, AC-2, MR-1, and the double-booking rule — see the history in each finding's own section below.)
+**Refreshed 2026-08-20 (fourth pass)** against one more stakeholder decision: **"recent patients" is confirmed ordered by most-recent visit date**, not registration date — closing MR-2, the last remaining Missing Requirement finding in this document. Recorded in `.claude/agents/implementation-brd.md` and `.claude/agents/verification-brd.md` and marked **Resolved** below. (Prior refresh passes closed CR-1, AC-2, MR-1, double booking, HC-1, and HC-2 — see the history in each finding's own section below.)
 
 ---
 
@@ -25,19 +25,19 @@ Four things matter most:
 
 ---
 
-## BRD Quality Score: 6.8 / 10
+## BRD Quality Score: 6.9 / 10
 
-- **Completeness (functional + domain coverage): 8.0** *(up from 7.0)* — Emergency contact is now a resolved field addition, and medical/surgical history is a deliberate, documented scope exclusion rather than a silent gap. What remains (Height/SpO2/BMI, HC-3; "recent patients" ranking, MR-2) is Medium/High, not Critical.
-- **Consistency (freedom from contradiction): 8.0** — Unchanged this pass; HC-1/HC-2 were domain-completeness findings, not contradictions.
-- **Testability (share of requirements with measurable acceptance criteria): 4.5** — Unchanged. 1 of 9 NFRs and 3 of 6 Success Criteria are independently testable as written; resolving healthcare-domain gaps doesn't touch this axis.
+- **Completeness (functional + domain coverage): 8.5** *(up from 8.0)* — "Recent patients" ranking (MR-2) is now a resolved functional requirement. What remains (Height/SpO2/BMI, HC-3) is Medium severity and explicitly a stakeholder's call, not a gap.
+- **Consistency (freedom from contradiction): 8.0** — Unchanged this pass; MR-2 was a Missing Requirement finding, not a contradiction.
+- **Testability (share of requirements with measurable acceptance criteria): 4.5** — Unchanged. 1 of 9 NFRs and 3 of 6 Success Criteria are independently testable as written — resolving MR-2 made `View recent patients` testable (see Development Readiness below), but that's a different axis than NFR/SC measurability.
 - **Architecture readiness (share of architectural decisions documented): 7.0** — Unchanged this pass. Backup/restore (AC-1) remains the only genuinely open architecture item.
-- **Traceability (requirements linked to a clear source/rationale): 6.5** *(up from 6.0)* — Two more decisions (emergency contact, no-medical-surgical-history) now have documented rationale in `implementation-brd.md`/`verification-brd.md`. Six decisions total across three refresh passes now live there instead of in `BRD/Doc_BRD.md` — the traceability gap is narrowing in substance even though the BRD text itself is still unchanged.
+- **Traceability (requirements linked to a clear source/rationale): 6.5** — Unchanged this pass; a seventh decision (recent-patients ranking) now has documented rationale in `implementation-brd.md`/`verification-brd.md`, though the improvement is small enough not to move this sub-score on its own.
 
 ---
 
-## Development Readiness: 63%
+## Development Readiness: 66%
 
-(requirements that are unambiguous AND non-contradictory AND testable AND not blocked by an undocumented architecture decision) ÷ (total requirements) × 100 — **20 of 32 requirements are build-ready as written** (17 Functional + 9 NFR + 6 Success Criteria = 32; see the matrix below for the per-requirement call). Unchanged this pass — HC-1/HC-2 affect Healthcare Completeness, not the requirement-level Testable/Consistency calls the Patient row already carried.
+(requirements that are unambiguous AND non-contradictory AND testable AND not blocked by an undocumented architecture decision) ÷ (total requirements) × 100 — **21 of 32 requirements are build-ready as written** (17 Functional + 9 NFR + 6 Success Criteria = 32; see the matrix below for the per-requirement call). Up from 63% — `View recent patients` moves from blocked to ready now that its ranking is defined, making all 17 Functional Requirements build-ready.
 
 This is a real improvement over the prior baseline (26%), driven almost entirely by `implementation-brd.md`'s fixed specs resolving what used to be open data-model and architecture questions. It has not improved on the NFR/measurability axis at all — that requires editing the BRD's language, which no amount of implementation-spec or scope-decision work fixes.
 
@@ -68,7 +68,7 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 | View previous visits / access vitals, complaints, diagnosis, prescriptions | Functional | Existing | [in scope] | OK | Yes | — |
 | Filter visit history by date | Functional | Existing | [in scope] | OK | Yes | — |
 | Quick patient search | Functional | Existing | [in scope] | Conflicts with: Patient Management "Search patients by name/phone" | Yes | Duplicate, see CR-4. |
-| View recent patients | Functional | Existing | [in scope] | OK | No | "Recent" has no defined ranking (last visited? last registered?) — see Missing Requirement Report, MR-2. |
+| View recent patients | Functional | Existing | [in scope] | OK | Yes | Ordered by most-recent visit date, not registration date — see Missing Requirement Report, MR-2 (Resolved). |
 | Navigation between patient profile and visits | Functional | Existing | [in scope] | OK | Yes | — |
 | Export data as CSV | Functional | Existing | [in scope] | OK | Yes | Full two-file shape fixed in `implementation-brd.md`. |
 | Export data as PDF | Functional | Existing | [in scope] | OK | Yes | Single-patient-summary shape fixed in `implementation-brd.md`. |
@@ -133,11 +133,12 @@ This is a real improvement over the prior baseline (26%), driven almost entirely
 - **Residual documentation gap (Low, not Critical):** Like the other resolved findings in this report, this decision lives in the agent config files, not in `BRD/Doc_BRD.md` itself.
 - **Suggested BRD Text:** Add under Appointment Management: *"Appointments are preferred; walk-in patients are also supported. The doctor sees appointment-booked patients according to their scheduled time and fits walk-in patients into availability between appointments. For a walk-in patient, the system creates an appointment record at the time of registration/consultation, so every visit remains linked to an appointment. Only one appointment may be scheduled for a specific date/time slot; the system rejects creating another appointment for a date/time already occupied."*
 
-### MR-2: "View recent patients" has no defined ranking
-- **Severity:** High
-- **Business Impact:** "Recent" could mean most-recently-registered or most-recently-seen — these produce materially different lists for a clinic with a mix of new and returning patients, and the doctor's expectation is almost certainly "who have I seen lately," not "who did I add to the system lately."
-- **Technical Impact:** Untestable as written — there's no acceptance criterion to check a build against.
-- **Recommendation:** Define "recent" explicitly as most-recently-visited, consistent with the search-ranking approach already recommended in `docs/brainstorm-brd-review.md` §4.1.
+### MR-2: "View recent patients" has no defined ranking — **RESOLVED**
+- **Severity:** High *(closed 2026-08-20)*
+- **Resolution:** Confirmed by the stakeholder and now recorded in `.claude/agents/implementation-brd.md` and `.claude/agents/verification-brd.md`: "recent patients" is ordered by most-recent **visit** date, not registration date — matching the recommendation this finding originally proposed.
+- **Business Impact (as originally raised):** "Recent" could have meant most-recently-registered or most-recently-seen — these produce materially different lists for a clinic with a mix of new and returning patients. The confirmed reading matches the doctor's actual expectation ("who have I seen lately").
+- **Technical Impact (as originally raised):** Previously untestable as written — there was no acceptance criterion to check a build against. Now directly testable: a patient registered earlier but visited more recently sorts ahead of one registered later but visited longer ago (or not visited at all).
+- **Residual documentation gap (Low, not High):** Like the other resolved findings in this report, this decision lives in the agent config files, not in `BRD/Doc_BRD.md` itself.
 - **Suggested BRD Text:** Replace `"View recent patients"` under Search & Navigation with: *"View recent patients — a list of patients ranked by most-recent visit date (not registration date), showing the N most recently seen."*
 
 ---
@@ -233,11 +234,10 @@ The BRD states "Open Questions: None." That does not hold. Real open questions, 
 
 - Backup mechanism (AC-1) — a resolution is proposed but not adopted.
 - Scope of "at rest" encryption beyond the login password (AC-3).
-- "Recent patients" ranking definition (MR-2).
 - Whether Height/SpO2 (HC-3) are wanted — this one is a genuine stakeholder call, not something to resolve unilaterally.
 - Measurement method/baseline for the "80% paper reduction" success criterion (TR-7).
 
-*Resolved and removed from this list across both refresh passes:* password recovery (accepted Phase 1 exclusion — see AC-2), the 2–3 minute consultation criterion's meaning (workflow completeness — see CR-1), and walk-in handling plus double booking (both now explicitly specified — see MR-1) are no longer open questions.
+*Resolved and removed from this list across all four refresh passes:* walk-in handling plus double booking (both now explicitly specified — see MR-1), password recovery (accepted Phase 1 exclusion — see AC-2), and "recent patients" ranking (most-recent visit date, not registration date — see MR-2) are no longer open questions.
 
 ---
 
@@ -316,7 +316,7 @@ A developer **can** start building today against every feature slice in `docs/pl
 
 In priority order, what specifically blocks a clean build:
 1. Backup mechanism adoption (AC-1) — blocks general release, not initial development, and is the sole remaining Critical finding in this document.
-2. Everything else in this report is real but non-blocking — the remaining clinical field question (HC-3: Height/SpO2/BMI, a genuine stakeholder call), measurability rewrites (TR-1 through TR-9), and documentation-consistency fixes (AC-4/AC-5/AC-6) can land incrementally without stopping feature work.
+2. Everything else in this report is real but non-blocking — the remaining clinical field question (HC-3: Height/SpO2/BMI, a genuine stakeholder call), measurability rewrites (TR-1 through TR-9), and documentation-consistency fixes (AC-4/AC-5/AC-6) can land incrementally without stopping feature work. "Recent patients" ranking (MR-2), previously in this bucket, is resolved and off the list.
 
 ## Final Verdict
 
