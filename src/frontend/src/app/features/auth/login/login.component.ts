@@ -36,7 +36,7 @@ export class LoginComponent {
     this.authService.login(username, password).subscribe({
       next: () => {
         this.submitting.set(false);
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard';
         this.router.navigateByUrl(returnUrl);
       },
       error: () => {

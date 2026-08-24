@@ -1,0 +1,60 @@
+@if (loading()) {
+  <p class="text-center py-5">Loading…</p>
+} @else {
+  <div class="container py-4" style="max-width: 40rem;">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h1 class="h4 mb-3">Clinic / Doctor Details</h1>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="mb-3">
+            <label for="clinicName" class="form-label">Clinic Name</label>
+            <input id="clinicName" type="text" class="form-control" formControlName="clinicName" />
+          </div>
+
+          <div class="mb-3">
+            <label for="doctorName" class="form-label">Doctor Name</label>
+            <input id="doctorName" type="text" class="form-control" formControlName="doctorName" />
+          </div>
+
+          <div class="mb-3">
+            <label for="qualifications" class="form-label">Qualifications</label>
+            <input id="qualifications" type="text" class="form-control" formControlName="qualifications" />
+          </div>
+
+          <div class="mb-3">
+            <label for="registrationNumber" class="form-label">Registration Number</label>
+            <input id="registrationNumber" type="text" class="form-control" formControlName="registrationNumber" />
+          </div>
+
+          <div class="mb-3">
+            <label for="logo" class="form-label">Logo</label>
+            @if (logoPreview()) {
+              <img [src]="logoPreview()" alt="Clinic logo" class="d-block mb-2" style="max-height: 5rem;" />
+            }
+            <input id="logo" type="file" accept="image/*" class="form-control" (change)="onLogoSelected($event)" />
+          </div>
+
+          <div class="mb-3">
+            <label for="signature" class="form-label">Signature</label>
+            @if (signaturePreview()) {
+              <img [src]="signaturePreview()" alt="Doctor signature" class="d-block mb-2" style="max-height: 5rem;" />
+            }
+            <input id="signature" type="file" accept="image/*" class="form-control" (change)="onSignatureSelected($event)" />
+          </div>
+
+          @if (errorMessage()) {
+            <div class="alert alert-danger py-2" role="alert">{{ errorMessage() }}</div>
+          }
+          @if (saveSucceeded()) {
+            <div class="alert alert-success py-2" role="alert">Saved.</div>
+          }
+
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            {{ saving() ? 'Saving…' : 'Save' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+}

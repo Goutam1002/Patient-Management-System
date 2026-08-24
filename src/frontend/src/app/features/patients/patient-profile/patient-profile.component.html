@@ -1,0 +1,54 @@
+@if (loading()) {
+  <p class="text-center py-5">Loading…</p>
+}
+
+@if (!loading() && errorMessage()) {
+  <div class="container py-4" style="max-width: 40rem;">
+    <div class="alert alert-danger" role="alert">{{ errorMessage() }}</div>
+  </div>
+}
+
+@if (!loading() && !errorMessage() && patient(); as p) {
+  <div class="container py-4" style="max-width: 40rem;">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <h1 class="h4 mb-0">{{ p.name }}</h1>
+          <a class="btn btn-outline-primary btn-sm" [routerLink]="['/patients', patientId, 'edit']">Edit</a>
+        </div>
+
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Patient ID</dt>
+          <dd class="col-sm-8">{{ p.patientId }}</dd>
+
+          <dt class="col-sm-4">Age</dt>
+          <dd class="col-sm-8">{{ p.age ?? '—' }}</dd>
+
+          <dt class="col-sm-4">Date of Birth</dt>
+          <dd class="col-sm-8">{{ p.dateOfBirth ?? '—' }}</dd>
+
+          <dt class="col-sm-4">Gender</dt>
+          <dd class="col-sm-8">{{ p.gender }}</dd>
+
+          <dt class="col-sm-4">Phone</dt>
+          <dd class="col-sm-8">{{ p.phone ?? '—' }}</dd>
+
+          <dt class="col-sm-4">Allergies</dt>
+          <dd class="col-sm-8">{{ p.allergies ?? '—' }}</dd>
+
+          <dt class="col-sm-4">Current Medications</dt>
+          <dd class="col-sm-8">{{ p.currentMedications ?? '—' }}</dd>
+
+          <dt class="col-sm-4">Chronic Conditions</dt>
+          <dd class="col-sm-8">{{ p.chronicConditions ?? '—' }}</dd>
+
+          <dt class="col-sm-4">Emergency Contact</dt>
+          <dd class="col-sm-8">{{ p.emergencyContactName ?? '—' }}</dd>
+
+          <dt class="col-sm-4">Emergency Contact Phone</dt>
+          <dd class="col-sm-8">{{ p.emergencyContactPhone ?? '—' }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+}

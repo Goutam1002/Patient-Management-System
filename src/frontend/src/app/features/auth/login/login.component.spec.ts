@@ -41,7 +41,7 @@ describe('LoginComponent', () => {
 
     httpMock.expectOne(`${environment.apiUrl}/auth/login`).flush({ username: 'doctor', sessionToken: 'abc123' });
 
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/dashboard');
   });
 
   it('shows an error message when login fails', () => {
