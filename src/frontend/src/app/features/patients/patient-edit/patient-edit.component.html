@@ -1,0 +1,73 @@
+@if (loading()) {
+  <p class="text-center py-5">Loading…</p>
+} @else {
+  <div class="container py-4" style="max-width: 40rem;">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h1 class="h4 mb-3">Edit Patient</h1>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input id="name" type="text" class="form-control" formControlName="name" />
+          </div>
+
+          <div class="row">
+            <div class="col mb-3">
+              <label for="age" class="form-label">Age</label>
+              <input id="age" type="number" min="0" class="form-control" formControlName="age" />
+            </div>
+            <div class="col mb-3">
+              <label for="dateOfBirth" class="form-label">Date of Birth</label>
+              <input id="dateOfBirth" type="date" class="form-control" formControlName="dateOfBirth" />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="gender" class="form-label">Gender</label>
+            <input id="gender" type="text" class="form-control" formControlName="gender" />
+          </div>
+
+          <div class="mb-3">
+            <label for="phone" class="form-label">Phone</label>
+            <input id="phone" type="text" class="form-control" formControlName="phone" />
+          </div>
+
+          <div class="mb-3">
+            <label for="allergies" class="form-label">Allergies</label>
+            <input id="allergies" type="text" class="form-control" formControlName="allergies" />
+          </div>
+
+          <div class="mb-3">
+            <label for="currentMedications" class="form-label">Current Medications</label>
+            <input id="currentMedications" type="text" class="form-control" formControlName="currentMedications" />
+          </div>
+
+          <div class="mb-3">
+            <label for="chronicConditions" class="form-label">Chronic Conditions</label>
+            <input id="chronicConditions" type="text" class="form-control" formControlName="chronicConditions" />
+          </div>
+
+          <div class="row">
+            <div class="col mb-3">
+              <label for="emergencyContactName" class="form-label">Emergency Contact Name</label>
+              <input id="emergencyContactName" type="text" class="form-control" formControlName="emergencyContactName" />
+            </div>
+            <div class="col mb-3">
+              <label for="emergencyContactPhone" class="form-label">Emergency Contact Phone</label>
+              <input id="emergencyContactPhone" type="text" class="form-control" formControlName="emergencyContactPhone" />
+            </div>
+          </div>
+
+          @if (errorMessage()) {
+            <div class="alert alert-danger py-2" role="alert">{{ errorMessage() }}</div>
+          }
+
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            {{ saving() ? 'Saving…' : 'Save' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+}
