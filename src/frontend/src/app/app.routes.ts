@@ -1,10 +1,14 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './features/auth/auth.guard';
 import { LoginComponent } from './features/auth/login/login.component';
+import { DoctorDetailsFormComponent } from './features/doctor-details/doctor-details-form/doctor-details-form.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
-  // Every other module's feature routes are expected to add canActivate:
-  // [authGuard] once they exist (Modules/README.md) -- there's nothing to
-  // guard yet, Authentication is the first module with any Angular UI.
+  {
+    path: 'doctor-details',
+    component: DoctorDetailsFormComponent,
+    canActivate: [authGuard],
+  },
   { path: '', pathMatch: 'full', redirectTo: 'login' },
 ];

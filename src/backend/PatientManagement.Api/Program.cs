@@ -21,6 +21,7 @@ builder.Services.AddScoped<IPasswordCrypto, AesPasswordCrypto>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IWalkInService, WalkInService>();
 builder.Services.AddScoped<ILoginService, LoginService>();
+builder.Services.AddScoped<IDoctorDetailsService, DoctorDetailsService>();
 builder.Services.AddSingleton<ISessionTokenStore, InMemorySessionTokenStore>();
 
 // Every controller requires a valid session token by default; the login
