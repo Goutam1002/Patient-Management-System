@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using PatientManagement.Api.Data;
-using PatientManagement.Api.Services;
+using PatientManagement.Application.Services;
+using PatientManagement.Infrastructure.Data;
+using PatientManagement.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
