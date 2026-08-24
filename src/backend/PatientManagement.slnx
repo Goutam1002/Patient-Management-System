@@ -4,4 +4,5 @@
   <Project Path="PatientManagement.Infrastructure/PatientManagement.Infrastructure.csproj" />
   <Project Path="PatientManagement.Api/PatientManagement.Api.csproj" />
   <Project Path="PatientManagement.Infrastructure.Tests/PatientManagement.Infrastructure.Tests.csproj" />
+  <Project Path="PatientManagement.Api.Tests/PatientManagement.Api.Tests.csproj" />
 </Solution>
