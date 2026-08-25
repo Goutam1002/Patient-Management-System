@@ -12,10 +12,19 @@ namespace PatientManagement.Api.Controllers;
 /// is declared here with an absolute template override so all three
 /// consultation endpoints live in one place and Module 4's controller is
 /// left untouched.
+///
+/// GET /api/visits/{id} is a *shared* read endpoint per Module 7's own API
+/// surface list ("Patient History") -- rather than standing up a second,
+/// competing route for the richer history detail (vitals+complaints+
+/// diagnosis+prescriptions), that one action below is extended to call
+/// IPatientHistoryService.GetVisitDetailAsync and return the superset
+/// VisitDetailDto. POST/PUT above are unaffected and keep returning Module
+/// 5's own VisitDto -- neither creates or edits prescriptions, so the extra
+/// join buys nothing there.
 /// </summary>
 [ApiController]
 [Route("api/visits")]
-public class VisitsController(IConsultationService consultationService) : ControllerBase
+public class VisitsController(IConsultationService consultationService, IPatientHistoryService patientHistoryService) : ControllerBase
 {
     [HttpPost("/api/appointments/{appointmentId:int}/start-consultation")]
     public async Task<ActionResult<VisitDto>> StartConsultation(int appointmentId, StartConsultationRequest request)
@@ -39,9 +48,9 @@ public class VisitsController(IConsultationService consultationService) : Contro
     }
 
     [HttpGet("{visitId:int}")]
-    public async Task<ActionResult<VisitDto>> Get(int visitId)
+    public async Task<ActionResult<VisitDetailDto>> Get(int visitId)
     {
-        var result = await consultationService.GetAsync(visitId);
+        var result = await patientHistoryService.GetVisitDetailAsync(visitId);
         return result is null ? NotFound() : Ok(result);
     }
 

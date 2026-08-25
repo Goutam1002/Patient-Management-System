@@ -1,0 +1,50 @@
+<div class="container py-4" style="max-width: 48rem;">
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <h1 class="h4 mb-0">
+      Visit History
+      @if (patient(); as p) {
+        <span class="text-muted">— {{ p.name }}</span>
+      }
+    </h1>
+    <a class="btn btn-outline-secondary btn-sm" [routerLink]="['/patients', patientId]">Back to Profile</a>
+  </div>
+
+  <app-date-range-filter (rangeChange)="onRangeChange($event)" />
+
+  @if (loading()) {
+    <p>Loading…</p>
+  }
+
+  @if (!loading() && errorMessage()) {
+    <div class="alert alert-danger" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (!loading() && !errorMessage() && visits().length === 0) {
+    <p class="text-muted">No visits recorded in this range.</p>
+  }
+
+  @if (!loading() && !errorMessage() && visits().length > 0) {
+    <table class="table table-sm table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">Visit #</th>
+          <th scope="col">Date</th>
+          <th scope="col">Diagnosis</th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of visits(); track v.id) {
+          <tr>
+            <td>{{ v.visitNumber }}</td>
+            <td>{{ v.visitDate | date: 'mediumDate' }}</td>
+            <td>{{ v.diagnosis ?? '—' }}</td>
+            <td class="text-end">
+              <a class="btn btn-outline-primary btn-sm" [routerLink]="['/patients', patientId, 'visits', v.id]">View</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

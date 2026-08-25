@@ -7,6 +7,8 @@ import { LoginComponent } from './features/auth/login/login.component';
 import { ConsultationWorkflowComponent } from './features/consultation/consultation-workflow/consultation-workflow.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { DoctorDetailsFormComponent } from './features/doctor-details/doctor-details-form/doctor-details-form.component';
+import { VisitDetailComponent } from './features/patient-history/visit-detail/visit-detail.component';
+import { VisitHistoryListComponent } from './features/patient-history/visit-history-list/visit-history-list.component';
 import { PatientEditComponent } from './features/patients/patient-edit/patient-edit.component';
 import { PatientProfileComponent } from './features/patients/patient-profile/patient-profile.component';
 import { PatientRegistrationFormComponent } from './features/patients/patient-registration-form/patient-registration-form.component';
@@ -68,6 +70,19 @@ export const routes: Routes = [
   {
     path: 'patients/:id/edit',
     component: PatientEditComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'patients/:id/history',
+    component: VisitHistoryListComponent,
+    canActivate: [authGuard],
+  },
+  {
+    // Distinct from Module 5's /visits/:visitId (the create/edit surface) --
+    // this is Module 7's read-only history detail view, nested under its
+    // patient for a natural "back to history" breadcrumb.
+    path: 'patients/:patientId/visits/:visitId',
+    component: VisitDetailComponent,
     canActivate: [authGuard],
   },
   {

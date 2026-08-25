@@ -1,0 +1,16 @@
+<form [formGroup]="form" (ngSubmit)="apply()" class="row g-2 align-items-end mb-3">
+  <div class="col-auto">
+    <label class="form-label small mb-0" for="dateRangeFrom">From</label>
+    <input id="dateRangeFrom" type="date" class="form-control form-control-sm" formControlName="from" />
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0" for="dateRangeTo">To</label>
+    <input id="dateRangeTo" type="date" class="form-control form-control-sm" formControlName="to" />
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  </div>
+  <div class="col-auto">
+    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clear()">Clear</button>
+  </div>
+</form>
