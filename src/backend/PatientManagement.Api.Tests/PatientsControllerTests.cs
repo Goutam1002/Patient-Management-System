@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using PatientManagement.Api.Authentication;
 using PatientManagement.Application.DTOs;
 
@@ -145,6 +146,58 @@ public class PatientsControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task Recent_ranks_by_most_recent_visit_date_not_registration_order()
+    {
+        var registeredFirst = await CreatePatientAsync(_client, "RegisteredFirst");
+        var registeredSecond = await CreatePatientAsync(_client, "RegisteredSecond");
+
+        // Registered first, but visited earlier -- should sort behind the
+        // patient registered later but visited more recently.
+        await CreateVisitAsync(_client, registeredFirst, new DateTime(2026, 1, 1, 9, 0, 0));
+        await CreateVisitAsync(_client, registeredSecond, new DateTime(2026, 6, 1, 9, 0, 0));
+
+        using var request = await AuthenticatedRequestAsync(HttpMethod.Get, "/api/patients/recent");
+        var response = await _client.SendAsync(request);
+        var results = await response.Content.ReadFromJsonAsync<List<RecentPatientDto>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("RegisteredSecond", results![0].Name);
+        Assert.Equal("RegisteredFirst", results[1].Name);
+    }
+
+    [Fact]
+    public async Task Recent_places_a_patient_with_no_visits_yet_last()
+    {
+        var noVisits = await CreatePatientAsync(_client, "NoVisits");
+        var withVisit = await CreatePatientAsync(_client, "WithVisit");
+        await CreateVisitAsync(_client, withVisit, new DateTime(2026, 1, 1, 9, 0, 0));
+
+        using var request = await AuthenticatedRequestAsync(HttpMethod.Get, "/api/patients/recent");
+        var response = await _client.SendAsync(request);
+        var results = await response.Content.ReadFromJsonAsync<List<RecentPatientDto>>();
+
+        Assert.Equal("WithVisit", results![0].Name);
+        Assert.Equal("NoVisits", results[1].Name);
+        Assert.Null(results[1].LastVisitDate);
+    }
+
+    [Fact]
+    public async Task Recent_respects_the_count_query_parameter()
+    {
+        var a = await CreatePatientAsync(_client, "A");
+        var b = await CreatePatientAsync(_client, "B");
+        await CreateVisitAsync(_client, a, new DateTime(2026, 1, 1, 9, 0, 0));
+        await CreateVisitAsync(_client, b, new DateTime(2026, 1, 2, 9, 0, 0));
+
+        using var request = await AuthenticatedRequestAsync(HttpMethod.Get, "/api/patients/recent?count=1");
+        var response = await _client.SendAsync(request);
+        var results = await response.Content.ReadFromJsonAsync<List<RecentPatientDto>>();
+
+        Assert.Single(results!);
+        Assert.Equal("B", results![0].Name);
+    }
+
+    [Fact]
     public async Task Endpoint_requires_authentication()
     {
         var response = await _client.GetAsync("/api/patients/1");
@@ -152,9 +205,58 @@ public class PatientsControllerTests : IDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    private async Task<HttpRequestMessage> AuthenticatedRequestAsync(HttpMethod method, string requestUri)
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
+
+    private async Task<int> CreatePatientAsync(HttpClient client, string name)
+    {
+        using var request = await AuthenticatedRequestAsync(HttpMethod.Post, "/api/patients", client);
+        request.Content = JsonContent.Create(new CreatePatientRequest { Name = name, Gender = "Female" });
+        var response = await client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<PatientDto>();
+        return created!.PatientId;
+    }
+
+    /// <summary>Books a scheduled appointment at the given instant and immediately starts a
+    /// consultation on it, so the resulting Visit's VisitDate (== Appointment.ScheduledTime)
+    /// lands exactly where the caller asked -- no clock pinning needed, unlike a walk-in.</summary>
+    private async Task<int> CreateVisitAsync(HttpClient client, int patientId, DateTime scheduledTime)
+    {
+        using var appointmentRequest = await AuthenticatedRequestAsync(HttpMethod.Post, "/api/appointments", client);
+        appointmentRequest.Content = JsonContent.Create(new CreateAppointmentRequest
+        {
+            PatientId = patientId,
+            ScheduledTime = scheduledTime,
+            DurationMinutes = 15,
+        });
+        var appointmentResponse = await client.SendAsync(appointmentRequest);
+        appointmentResponse.EnsureSuccessStatusCode();
+        var appointment = (await appointmentResponse.Content.ReadFromJsonAsync<AppointmentDto>(JsonOptions))!;
+
+        using var startRequest = await AuthenticatedRequestAsync(
+            HttpMethod.Post, $"/api/appointments/{appointment.Id}/start-consultation", client);
+        startRequest.Content = JsonContent.Create(new
+        {
+            temperature = 37.0m,
+            bpSystolic = (short)120,
+            bpDiastolic = (short)80,
+            pulse = 72,
+            weight = 52.850m,
+        });
+        var startResponse = await client.SendAsync(startRequest);
+        startResponse.EnsureSuccessStatusCode();
+        var visit = (await startResponse.Content.ReadFromJsonAsync<VisitDto>(JsonOptions))!;
+        return visit.Id;
+    }
+
+    private async Task<HttpRequestMessage> AuthenticatedRequestAsync(
+        HttpMethod method, string requestUri, HttpClient? client = null)
+    {
+        client ??= _client;
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
         {
             Username = AuthApiFactory.SeedUsername,
             Password = AuthApiFactory.SeedPassword,

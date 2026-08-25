@@ -1,0 +1,33 @@
+<div class="card">
+  <div class="card-body">
+    <h2 class="h6 card-title">Recent Patients</h2>
+
+    @if (loading()) {
+      <p class="text-muted mb-0">Loading…</p>
+    }
+
+    @if (!loading() && errorMessage()) {
+      <div class="alert alert-danger py-2" role="alert">{{ errorMessage() }}</div>
+    }
+
+    @if (!loading() && !errorMessage() && patients().length === 0) {
+      <p class="text-muted mb-0">No patients yet.</p>
+    }
+
+    @if (!loading() && !errorMessage() && patients().length > 0) {
+      <ul class="list-group">
+        @for (patient of patients(); track patient.patientId) {
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>
+              {{ patient.name }}
+              <span class="text-muted small">
+                — {{ patient.lastVisitDate ? (patient.lastVisitDate | date: 'mediumDate') : 'no visits yet' }}
+              </span>
+            </span>
+            <a class="btn btn-outline-primary btn-sm" [routerLink]="['/patients', patient.patientId]">Profile</a>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>
