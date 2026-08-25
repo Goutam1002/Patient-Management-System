@@ -8,6 +8,8 @@
 | Step | Plan Phase | Suites Run | Total | Passed | Failed | Skipped (flagged) | Verdict | Commit Verified | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | 12 | Appointment Management — `Modules/04-appointment-management.md` full build checklist | `dotnet test` (82), `ng test` ChromeHeadless (54), `ng build`, EF migration smoke test (inside `dotnet test`), live API end-to-end vs. real LocalDB | 136 | 136 | 0 | 0 | **PASS** | `9f7e9c0` | All four fixed-spec Appointment hard gates re-verified independently, in code, in tests, and live over HTTP. Implementer's counts reproduced exactly (47 Infrastructure + 35 Api = 82; 54 frontend). Zero skipped/disabled/focused tests repo-wide. Six non-blocking findings below — two (F-1, F-2) concern the *semantics* of the double-booking rule and need a spec decision before Module 5, but neither contradicts what this module locked. |
+| 13 | Consultation Workflow — `Modules/05-consultation-workflow.md` full build checklist | `dotnet test` (120), `ng test` ChromeHeadless (89), `ng build`, EF migration smoke test (inside `dotnet test`), live API end-to-end vs. real LocalDB | 209 | 209 | 0 | 0 | **PASS** | `f9aceb9` | Verified together with Step 14 in the single worktree that holds both (Step 13's code is inherited unchanged from `main` into that worktree). Implementer's counts reproduced exactly. See combined detail below. |
+| 14 | Prescription / Medication — `Modules/06-prescription-medication.md` full build checklist | `dotnet test` (120), `ng test` ChromeHeadless (89), `ng build`, EF migration smoke test (inside `dotnet test`), live API end-to-end vs. real LocalDB | 209 | 209 | 0 | 0 | **PASS** | `688802e` | Verified together with Step 13, same run (worktree `impl-prescription-medication`, tip `688802e`, off `main`@`7a23d41`). Implementer's counts reproduced exactly. See combined detail below. |
 
 ---
 
@@ -123,3 +125,164 @@ files are shared across branches rather than branch-scoped.
 on this foundation, F-1 needs an explicit recorded decision (it changes what "double booked" means for every
 later step) and F-3 should be closed by whichever step next reshapes `IWalkInService`. Neither blocks
 landing Step 12 itself.
+
+---
+
+## Steps 13 & 14 — verification detail
+
+**Verdict: PASS (both steps).** Verified together, as instructed — both are marked `Done` in
+`docs/implementation-progress.md` with no prior entry in this file, and both live in the same single
+worktree (`.claude\worktrees\impl-prescription-medication`, branch `impl/prescription-medication`, tip
+`688802e`, built directly off `main`@`7a23d41` — which is Step 13's own merge commit, so Step 13's code is
+present unchanged, and Step 14's commit sits on top). `EnterWorktree` refused entry with `path` because the
+session's working directory was already the repository root, not a worktree — per the persona's documented
+fallback, all verification below ran directly against that worktree's absolute paths instead. This is a
+worktree `implementation-brd` created, not this session — nothing was removed at the end, consistent with
+"only ever `action: keep`" for a worktree you didn't create (no `ExitWorktree` action was taken at all here,
+since entry itself was never established).
+
+### Suites executed (full repo, not diff-only)
+
+| Suite | Result |
+|---|---|
+| `dotnet build` (`src/backend`) | Succeeded, 0 warnings, 0 errors |
+| `dotnet test` → `PatientManagement.Infrastructure.Tests` | 64 passed, 0 failed, 0 skipped |
+| `dotnet test` → `PatientManagement.Api.Tests` | 56 passed, 0 failed, 0 skipped |
+| `ng test --watch=false --browsers=ChromeHeadless` | `TOTAL: 89 SUCCESS`, 0 failed, exit code 0 |
+| `ng build` | Succeeded — initial total **679.64 kB** (within the 700 kB budget, matches the implementer's own figure exactly); only the 4 pre-existing Bootstrap CSS selector warnings, unrelated to Steps 13/14 |
+| EF migration smoke test (`MigrationSmokeTests`, inside the 64) | Passed — and confirmed no new migration exists since Step 6's `AddPrescriptions` (`ls Migrations/` shows the same 5 migrations Step 12 had; correct, since neither step changed the schema) |
+| Live API (`dotnet run`, `ASPNETCORE_ENVIRONMENT=Development`, throwaway port 5299, real `(localdb)\MSSQLLocalDB`) | All probes matched expected — see gate tables below |
+
+Backend total: 64 + 56 = **120 passed**, matching `docs/implementation-progress.md`'s own claimed count
+exactly (up from 82 at Step 12: +21 for Step 13, +17 for Step 14 — both deltas reproduce the tracker's own
+arithmetic). Frontend: **89 passed**, matching the tracker exactly (up from 54: +19 for Step 13, +16 for
+Step 14). Combined: **209/209**, 0 failed, 0 skipped.
+
+Skip/disable audit (repo-wide, not scoped to these steps): `grep` for `Skip *=`, `[Ignore]`,
+`[Fact(Skip`, `[Theory(Skip`, `xit(`, `xdescribe(`, `fit(`, `fdescribe(`, `.skip(`, `.only(` across
+`src/backend` and `src/frontend/src` returned **zero matches**. No empty test bodies found in the
+Step 13/14 test files read below.
+
+### Test-body audit — confirmed these assert the requirement, not just that code runs
+
+Read in full: `VisitsControllerTests.cs`, `ConsultationServiceTests.cs`, `PrescriptionsControllerTests.cs`,
+`PrescriptionServiceTests.cs`, `DrugSuggestionServiceTests.cs`, `vitals-form.component.spec.ts`,
+`prescription-form.component.spec.ts`. All genuinely exercise the locked rule, not a trivial not-null check:
+the missing-vitals `[Theory]` removes exactly one of the five vitals fields per case and confirms both the
+`400` **and** that nothing was written (a follow-up full-vitals call still gets visit number 1, not 2); the
+vitals-smuggling update test sends `"temperature": 999` inside a `PUT /api/visits/{id}` body and asserts the
+stored value is unchanged; the prescription immutability test asserts `405` on `PUT`/`PATCH`/`DELETE`
+*and* re-fetches to confirm the content is untouched; the drug-suggestion contains test searches `"oxic"`
+(a genuine mid-string substring of "Amoxicillin", not a prefix) and asserts exactly one match.
+
+### Hard-gate re-verification (fixed spec, `implementation-brd.md`)
+
+**Consultation path**
+
+| Gate | Verdict | Evidence |
+|---|---|---|
+| Vitals mandatory at data-entry time, server-side enforced | PASS | `StartConsultationRequest` (`.../DTOs/StartConsultationRequest.cs:20-33`) makes all 5 vitals fields nullable value types decorated `[Required]` — deliberately diverging from `WalkInVisitRequest`'s non-nullable-primitives pattern specifically so ASP.NET Core's model binder 400s a missing vital before `ConsultationService` ever runs, closing the exact client-validation-only gap `codereview-brd` found in Step 12's CR-2. Live: omitting `pulse` from a full-vitals POST → `400 {"errors":{"Pulse":["The Pulse field is required."]}}`, nothing written. `[Theory]` at `VisitsControllerTests.cs:73-115` covers all 5 fields individually. |
+| Temperature Celsius, BP two numeric columns, Weight `decimal(6,3)` | PASS (unchanged from Step 5, regression-checked) | `Visit.cs` schema untouched by Steps 13/14. Live + test: weight `60.500`/`52.850` round-trips exactly through the full HTTP flow (`VisitsControllerTests.Weight_round_trips_at_three_decimal_places_through_the_full_http_flow`, `ConsultationServiceTests.Weight_round_trips_at_three_decimal_places_without_rounding`). |
+| No draft/autosave path that saves a Visit without vitals | PASS | Only construction path for a `Visit` via this module is `ConsultationService.StartConsultationAsync`, which requires the full validated `StartConsultationRequest`; no partial-save method exists anywhere in `IConsultationService`. |
+| Post-creation edit boundary: vitals never editable retroactively, complaints/diagnosis are | PASS | `UpdateVisitRequest` (`record UpdateVisitRequest(string? Complaints, string? Diagnosis)`) has no vitals property at all — a client cannot smuggle one through model binding. Live-proven: `PUT /api/visits/{id}` with a genuine `"temperature": 999` in the body returns `200` with the original temperature untouched. `ConsultationWorkflowComponent.loadExistingVisit()` (`.ts:79-103`) loads vitals into the reactive form then immediately calls `.disable()` — visible for clinical context, never submittable. |
+| 2–3 minute workflow-completeness (create mode) | PASS, no added friction | One screen (`ConsultationWorkflowComponent`, create mode), one submit, one `POST` — vitals + complaints + diagnosis together, same shape as the already-accepted `WalkInRegistrationComponent`. The daily schedule's "Start Consultation" link is what makes the screen reachable without hand-typing a URL, correctly treated as in-scope rather than deferred. |
+
+**Prescription / medication**
+
+| Gate | Verdict | Evidence |
+|---|---|---|
+| A printed prescription is immutable — no update endpoint may ever target an existing `Prescription`/`PrescriptionItem` | PASS | `PrescriptionsController` (`Controllers/PrescriptionsController.cs`) declares exactly three actions — `POST /api/visits/{visitId}/prescriptions`, `GET /api/prescriptions/{id}`, `GET /api/prescriptions/drug-suggestions` — no `[HttpPut]`/`[HttpPatch]`/`[HttpDelete]` action exists at all, so this is an absence proven by test, not enforcement logic that could have a bug. Live-confirmed: `PUT`/`PATCH`/`DELETE` against `/api/prescriptions/{id}` all return **405** (route template matches, no verb-specific action), and a re-`GET` afterward shows the original content untouched. `PrescriptionsControllerTests.No_update_endpoint_exists_for_a_printed_prescriptions_line_items`. |
+| A correction creates a new `Prescription` row, never mutates the first | PASS | Live-confirmed: two `POST`s against the same visit return different ids (`4` then a second id in this run), and re-fetching the first still shows only its original line item. `PrescriptionsControllerTests.A_correction_after_printing_creates_a_new_prescription_row_not_a_mutation`, `PrescriptionServiceTests.A_correction_creates_a_new_prescription_row_rather_than_mutating_the_first`. |
+| `DoctorDetails` snapshotted at creation, never joined live | PASS (unchanged from Step 6, regression-checked) | `PrescriptionService.CreatePrescriptionAsync` calls `Prescription.CreateFromDoctorDetails(...)`, the sole sanctioned construction path; `PrescriptionSnapshotTests` (Step 6, still in the 64 green) proves editing `DoctorDetails` afterward doesn't retroactively change an existing prescription. |
+| Medication entry free text with autocomplete, not a coded/validation constraint | PASS | `PrescriptionItem.DrugName`/`CreatePrescriptionItemRequest.DrugName` is `required string` with no dictionary/enum constraint; `DrugSuggestionService` is read-only, used for UX suggestions only. |
+| Autocomplete match semantics — resolved as `Contains`, case-insensitive | PASS | `DrugSuggestionService.cs:17-21` — `i.DrugName.ToLower().Contains(lowerTerm)`, not `StartsWith`. Live-confirmed twice: `?prefix=ARA` matches "Paracetamol" (mid-string: p-**ara**-cetamol) and `?prefix=RIZ` matches "Cetirizine" (mid-string: ceti-**riz**-ine) — neither is a prefix match. `DrugSuggestionServiceTests.Matches_a_substring_occurring_anywhere_in_the_drug_name_not_only_a_prefix` uses `"oxic"` against "Amoxicillin" for the same proof. |
+
+### Live API verification (full flow, real LocalDB, port 5299)
+
+Login as seeded doctor → create patient → book appointment → `POST start-consultation` with an
+intentionally-incomplete body (missing `pulse`) → **400**, nothing written → same request with full vitals →
+**201**, weight `60.500` preserved exactly → `POST /api/visits/{visitId}/prescriptions` with 2 line items →
+**201** with the real snapshotted `DoctorDetails` (clinic name, logo/signature bytes) and both items →
+`GET /api/prescriptions/{id}` reflects them → drug-suggestions contains-match confirmed on two different
+mid-string terms → `PUT`/`DELETE` against the prescription both **405** → unauthenticated `GET` → **401**.
+Every result matched what the automated suite and the tracker's own manual-verification notes claim.
+
+### Regression spot-check — other fixed-spec gates (full suite run, unchanged areas)
+
+No regressions. Authentication (`AuthControllerTests`, `SessionTokenGateTests`, `AesPasswordCryptoTests`,
+`UsersSchemaTests`), Patient/Vitals (`PatientServiceTests`, `PatientsControllerTests` incl.
+`No_delete_endpoint_exists`), Search (substring-anywhere on name/phone, case-insensitive), and Appointment
+(`AppointmentServiceTests`, `AppointmentsControllerTests` — duration doctor-entered, walk-in one-appointment-
+one-visit, daily list merged, double-booking exact-instant rejection) all still pass unchanged, all still
+inside the 120 backend tests.
+
+### Connection to Step 12's unresolved `CHANGES REQUESTED` findings (context only — not re-reviewed, not attributed to Steps 13/14)
+
+Per the briefing, CR-1 through CR-4 against Step 12 (`docs/codereview-report.md`) were never fixed and are
+pre-existing conditions in the code Steps 13/14 build on top of. Confirmed via `git diff --stat 7a23d41 688802e`
+against `AppointmentsController.cs`, `AppointmentService.cs`, `WalkInService.cs`, and `AppointmentSlotGuard.cs`
+that **none of these four files changed** between Step 13's merge and Step 14's tip — so nothing here
+introduces, worsens, or fixes any of CR-1 through CR-4. Two connections are worth recording explicitly:
+
+- **CR-1 (`PatientId` unvalidated on `CreateAppointmentRequest`) reaches into Step 13's own code path.**
+  `ConsultationService.StartConsultationAsync` (`Services/ConsultationService.cs:39`) reads
+  `PatientId = appointment.PatientId` directly off whatever `Appointment` row it's given, with no
+  re-validation. Live-reconfirmed this run (not a new finding, just re-demonstrating the mechanism):
+  `POST /api/appointments` with `patientId` omitted still returns **201**, silently booking against patient
+  `0` (which is a real patient in this dataset, per the fixed `PatientId` seed-at-0 spec). Any consultation
+  started from such a bogus appointment will write a `Visit` under patient `0` with no additional safeguard
+  — Step 13 doesn't introduce this defect, it simply trusts the `Appointment` row exactly as Step 12's
+  unfixed code allows it to exist. Worth closing in whichever pass finally addresses CR-1, since Step 13 is
+  now a second consumer of the same unvalidated field.
+- **By contrast, Step 13 does not repeat CR-2's mistake.** `StartConsultationRequest` enforces all five
+  vitals server-side (`[Required]` on nullable value types) exactly where `WalkInVisitRequest` — the code
+  CR-2 flagged — still doesn't. This is a real, if incidental, partial mitigation: the *scheduled-consultation*
+  path into `Visit` creation is solid; the *walk-in* path into `Visit` creation (CR-2, untouched by this work)
+  remains the one open gap of this shape.
+- CR-3 (status-guard one-directional) and CR-4 (exact-instant double-booking) have no interaction with
+  Steps 13/14 at all — neither `ConsultationService` nor `PrescriptionService` calls
+  `AppointmentService.UpdateStatusAsync` or `AppointmentSlotGuard`.
+
+### New finding — non-blocking
+
+**F-8 — The printable prescription never renders the snapshotted `Logo`/`Signature` image bytes. Severity: Medium.**
+
+**Location:** `src/frontend/src/app/features/prescriptions/printable-prescription/printable-prescription.component.html`
+(header at `:16-25`, footer at `:89-96`); `PrescriptionDto.Logo`/`.Signature` (base64, populated from
+`Prescription.CreateFromDoctorDetails`'s snapshot) are fetched into the component's `prescription` signal
+but never referenced anywhere in the template.
+
+`implementation-brd.md`'s Doctor/clinic details spec is explicit about *why* these two fields exist:
+*"A `DoctorDetails` table holds: ClinicName, DoctorName, Qualifications, RegistrationNumber, Logo, Signature.
+This is the source for the header/footer of printed prescriptions."* The data model was built specifically
+to carry a logo image into the header and a signature image into the footer of exactly this artifact —
+`Prescription.CreateFromDoctorDetails` snapshots both as `byte[]?` alongside the text fields, and the
+snapshot-isolation test (Step 6) proves the bytes round-trip correctly. The printed view renders every text
+field (`ClinicName`, `DoctorName`, `Qualifications`, `RegistrationNumber`) but silently drops both image
+fields — the header has no logo, and the footer's "Signature" area is a blank line for the doctor to sign by
+hand rather than the doctor's stored signature image.
+
+**Why this is not a FAIL:** the BRD's own wording — *"Footer (basic notes/signature area)"* — is plausibly
+satisfied by a blank line for a physical signature, and this isn't one of the fixed hard gates
+`verification-brd.md` names for Prescription (that list is immutability-only). Both `Modules/06-prescription-
+medication.md` and the Step 14 tracker row describe the built component as "header/patient/vitals/diagnosis/
+meds/footer" without calling out logo/signature rendering as a requirement, so this wasn't silently dropped
+against an explicit checklist item either.
+
+**Why it's still worth recording:** the two fields were captured, snapshotted, and unit-tested specifically
+because implementation-brd.md ties them to this exact artifact's header/footer, and a doctor who uploaded a
+clinic logo via Module 2 would reasonably expect it to appear on a printed prescription. Cheap to close:
+render `<img [src]="'data:image/png;base64,' + rx.logo">`/`rx.signature` conditionally in the existing
+header/footer sections when non-null.
+
+**Suggested owner:** `implementation-brd`, next pass that touches `PrintablePrescriptionComponent` — not
+blocking, no test currently claims this is covered so nothing needs to be un-asserted.
+
+### What happens next
+
+**Proceed.** Steps 13 and 14 are both verified and may be treated as `Done`. Nothing found here blocks
+Step 15 or a merge of `impl/prescription-medication`. F-8 is cosmetic/incomplete-feature, not a defect in
+what was tested and claimed; the CR-1 connection is a reminder that fixing CR-1 now has two consumers
+(Steps 12 and 13) rather than a reason to hold this step. `docs/codereview-report.md`'s CR-1 through CR-4
+against Step 12 remain open and still block nothing in this scope, but should not be allowed to accumulate
+further unaddressed consumers indefinitely.
