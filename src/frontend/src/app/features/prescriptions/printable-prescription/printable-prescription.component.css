@@ -1,0 +1,12 @@
+/* Print stylesheet: only the prescription sheet itself is printed -- the
+   Back/Print action buttons and page chrome are excluded. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  #prescription-sheet {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

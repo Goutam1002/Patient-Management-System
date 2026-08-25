@@ -176,4 +176,20 @@ export class ConsultationWorkflowComponent implements OnInit {
   goToSchedule(): void {
     this.router.navigate(['/appointments']);
   }
+
+  /**
+   * Navigation hook into Module 6 (Prescription) -- reachable only after a
+   * visit exists (a prescription attaches to a Visit with a diagnosis
+   * already recorded, per that module's own Dependencies note). Kept as a
+   * link out to a separate screen rather than merging prescription entry
+   * into this component, per this step's own scope note; costs the doctor
+   * exactly one extra click from the already-existing success panel, not an
+   * extra screen inserted into the mandatory path.
+   */
+  goToPrescription(): void {
+    const visit = this.visit();
+    if (visit) {
+      this.router.navigate(['/visits', visit.id, 'prescriptions', 'new']);
+    }
+  }
 }

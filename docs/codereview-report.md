@@ -8,6 +8,8 @@
 | Step | Plan Phase | Verdict | Critical | High | Medium | Low | Commit Reviewed | Notes |
 |---|---|---|---|---|---|---|---|---|
 | 12 | Appointment Management — `Modules/04-appointment-management.md` full build checklist | **CHANGES REQUESTED** | 0 | 4 | 4 | 7 | `9f7e9c0` | Four High findings: two unvalidated request DTOs that let the *wrong patient* and *zero-valued vitals* be written silently, a status guard enforced in only one direction, and the overlap-blind double-booking rule. Verification's PASS stands — every one of these is outside what the existing tests exercise. See below. |
+| 13 | Consultation Workflow — `Modules/05-consultation-workflow.md` full build checklist | **APPROVED** | 0 | 0 | 1 | 1 | `f9aceb9` | Vitals mandatory-at-entry is enforced correctly server-side (unlike Step 12's walk-in CR-2), and the post-creation edit boundary is a clean "no property on the DTO" proof. One new Medium (TOCTOU race on the visit-uniqueness check, same unaddressed shape as Step 12's CR-6) and one Low (own verdict on the CR-1 connection verification flagged). See below. |
+| 14 | Prescription / Medication — `Modules/06-prescription-medication.md` full build checklist | **APPROVED** | 0 | 0 | 1 | 0 | `688802e` | Immutability is proven by absence (no PUT/PATCH/DELETE action exists), snapshot isolation and free-text autocomplete both hold. One new Medium, concurring with and extending verification's F-8: the snapshotted `Logo`/`Signature` bytes reach the Angular `Prescription` interface but the printable template never renders them, despite the fixed spec tying those exact fields to this exact artifact. See below. |
 
 ---
 
@@ -385,3 +387,227 @@ Module 5 builds a second screen with the same raw-id input.
 
 Nothing here contradicts `verification-brd`'s PASS — every High above is outside what the test suite
 exercises, which is exactly the gap this gate exists to close.
+
+---
+
+## Steps 13 & 14 — code review detail
+
+**Verdict: APPROVED (both steps).** Reviewed together, as instructed — both are `Done` in
+`docs/implementation-progress.md`, both have a fresh `docs/verification-report.md` PASS entry
+(209/209, commit `f14a249`), and both live in the single worktree
+`.claude/worktrees/impl-prescription-medication` (branch `impl/prescription-medication`, tip `f14a249`
+— Step 14's own `688802e` plus verification's report commit on top, built off `main`@`7a23d41`, which is
+Step 13's own merge commit, so Step 13's code (`f9aceb9`) is present unchanged and Step 14's commit sits
+on top). `EnterWorktree` with `path` was refused ("the current working directory ... is the repository
+root, not an isolated worktree"), so this review ran directly against the worktree's absolute paths
+instead, per the same documented fallback `verification-brd` used. This worktree was created by
+`implementation-brd`, not this session — no `ExitWorktree` action of any kind was taken.
+
+Read in full before starting: `Modules/05-consultation-workflow.md`, `Modules/06-prescription-medication.md`,
+`docs/implementation-progress.md` Steps 13/14 rows, `docs/verification-report.md`'s Steps 13 & 14 detail
+section (PASS, `f14a249`), and `docs/codereview-report.md`'s own Step 12 entry above (CR-1 through CR-4,
+still open). `.claude/agents/implementation-brd.md` was read in full for the fixed specs this review
+checks against.
+
+Files actually read (not just the diff from `main`): `StartConsultationRequest.cs`, `UpdateVisitRequest.cs`,
+`VisitDto.cs`, `IConsultationService.cs`, `ConsultationAlreadyStartedException.cs`, `ConsultationService.cs`,
+`VisitsController.cs`, `CreatePrescriptionRequest.cs`, `PrescriptionDto.cs`, `PrescriptionItemDto.cs`,
+`IPrescriptionService.cs`, `IDrugSuggestionService.cs`, `PrescriptionService.cs`, `DrugSuggestionService.cs`,
+`PrescriptionsController.cs`, `Prescription.cs` (domain), `AppDbContext.cs` (Weight/Temperature/index
+config), `Program.cs` (DI registration), `app.routes.ts`, `consultation.service.ts`,
+`consultation-workflow.component.ts`, `vitals-form.component.ts`, `prescription.service.ts`,
+`prescription-form.component.ts`, `printable-prescription.component.ts`/`.html`, and the full test bodies
+of `VisitsControllerTests.cs`, `PrescriptionsControllerTests.cs`, `ConsultationServiceTests.cs`,
+`PrescriptionServiceTests.cs`, `DrugSuggestionServiceTests.cs`.
+
+**Overall assessment:** this is careful, well-reasoned work, and it visibly learned from Step 12's code
+review. `StartConsultationRequest` deliberately mirrors `CreateAppointmentRequest.DurationMinutes`'s
+nullable-plus-`[Required]` pattern specifically to close the exact client-validation-only gap CR-2 found —
+that is the correct fix, applied proactively, to a sibling code path Step 12 got wrong. `UpdateVisitRequest`
+and the "no PUT/PATCH/DELETE action" technique on `PrescriptionsController` both enforce their invariants
+by construction (absence of a property, absence of a route) rather than by a runtime check that could have
+a bug — the same durable pattern already established for `Patient`'s no-delete guarantee. Every fixed
+hard gate for these two modules was independently re-read in the actual code, not inferred from a passing
+test: mandatory vitals, the vitals-locked/complaints-diagnosis-editable boundary, prescription immutability,
+`DoctorDetails` snapshot-not-live-join, and `Contains` autocomplete semantics all hold exactly as specified.
+
+---
+
+### Correctness Review
+
+**No Critical/High findings.**
+
+**CR-11 — `ConsultationService.StartConsultationAsync`'s "at most one visit per appointment" check is a
+TOCTOU race with no handler for the DB constraint that actually backstops it. Severity: Medium.**
+
+**Location:** `src/backend/PatientManagement.Infrastructure/Services/ConsultationService.cs:13-26` (the
+`FirstOrDefaultAsync` load + `AnyAsync` pre-check) through `:63` (`SaveChangesAsync`); the unique index
+that is the real backstop is `AppDbContext.cs:75` (`entity.HasIndex(v => v.AppointmentId).IsUnique()`).
+
+**What's wrong:** the same shape Step 12's code review already flagged as **CR-6** (`AppointmentSlotGuard`
+vs. its own unique-index backstop) is present again here, unaddressed, in a second service: two concurrent
+`POST /api/appointments/{id}/start-consultation` requests for the same appointment can both pass the
+`alreadyHasVisit` check before either has inserted, and the loser's `SaveChangesAsync` then fails on the
+unique index with an unhandled `DbUpdateException` — nothing in `VisitsController.StartConsultation`
+catches that exception type, so the caller gets an unhandled `500`, not the `409`
+(`ConsultationAlreadyStartedException`) the guard exists to produce for the same logical conflict when it's
+detected in time. This is not a new pattern being invented — `PrescriptionsController`/`AppointmentsController`
+don't need this at all (prescriptions have no uniqueness rule; appointments' equivalent is exactly CR-6) —
+it's the identical unaddressed gap recurring in code this step wrote fresh.
+
+**Why it matters:** low likelihood on a single-user localhost app (CR-6's own reasoning applies
+identically) — the realistic trigger is a doctor double-clicking "Start Consultation" on a slow connection,
+not concurrent multi-user traffic. But the failure mode is a raw `500` with no explanatory body, worse
+than the `409` a doctor would actually understand, and it is the second occurrence of a fix CR-6 already
+specified — worth closing both in the same pass rather than accumulating a third instance in a future
+module.
+
+**Suggested fix:** same remedy as CR-6 — wrap `SaveChangesAsync` in
+`catch (DbUpdateException ex) when (IsUniqueIndexViolation(ex)) { throw new ConsultationAlreadyStartedException(appointmentId); }`.
+Add a test that starts two consultations for the same appointment concurrently (or mocks the race) and
+asserts `409`, not `500`.
+
+**Low — `ConsultationService.StartConsultationAsync` trusts `appointment.PatientId` with no re-validation,
+confirmed as a second consumer of Step 12's still-open CR-1, not a new defect of its own. Severity: Low
+(informational, no action routed).**
+
+**Location:** `src/backend/PatientManagement.Infrastructure/Services/ConsultationService.cs:39`
+(`PatientId = appointment.PatientId`).
+
+Forming an independent verdict on this, as asked, rather than restating verification's framing: this is
+**not** a new Correctness finding against Step 13's own code, and it does not get a CR number. The reason
+is structural, not just "it's pre-existing" — `StartConsultationRequest` has no `PatientId` property at
+all (compare `CreateAppointmentRequest.PatientId`, the actual site of CR-1's defect); there is no new
+attacker/user-controlled input here for Step 13 to have validated or failed to validate. The service reads
+an already-persisted foreign key off a row it just loaded, which is ordinary, correct service design — the
+entire defect surface is CR-1's own `[Required]`/`[Range]` gap on `CreateAppointmentRequest.PatientId`, and
+fixing CR-1 closes this consumer automatically with no separate change needed here. Recorded because the
+task asked for it to be, and because it is a legitimate reason to prioritize CR-1 (two consumers now, not
+one) — not because Step 13 did anything wrong.
+
+**Confirmed: Step 14 does not repeat CR-1's mistake.** `CreatePrescriptionRequest` takes no patient/visit
+id in its body at all (`visitId` comes from the route and is checked with `db.Visits.AnyAsync` → `404` if
+absent); its only body field, `Items`, is `[Required]`/`[MinLength(1)]` and each item's `DrugName` is
+`[Required]`. No unvalidated-id pattern was introduced.
+
+---
+
+### Quality Review
+
+**No Critical/High findings.**
+
+No dead code, no misleading naming, no duplicated logic that should share an implementation. Controllers
+stay thin — all branching logic (the `alreadyHasVisit` guard, the `DoctorDetails`-fallback default, the
+`Contains` query) lives in the two services, not in `VisitsController`/`PrescriptionsController`. DTOs
+don't leak EF entity shapes: `VisitDto`/`PrescriptionDto`/`PrescriptionItemDto` are hand-shaped, and
+`PrescriptionService.ToDto` converts `Logo`/`Signature` `byte[]?` to base64 `string?` rather than exposing
+raw bytes, mirroring `DoctorDetailsDto`'s own convention. No unrequested scope: `[MinLength(1)]` on
+`CreatePrescriptionRequest.Items` is the one addition beyond the module's own checklist, and it's
+justified (an empty prescription isn't a meaningful printed document) and cheap to relax, not
+speculative infrastructure.
+
+**CQ-5 — `PrintablePrescriptionComponent` never renders the snapshotted `Logo`/`Signature` bytes it
+already has on hand. Severity: Medium. (Independent verdict, concurring with verification's F-8.)**
+
+**Location:** `src/frontend/src/app/features/prescriptions/printable-prescription/printable-prescription.component.html:16-25`
+(header) and `:89-96` (footer); the data is present and typed on the component's own model at
+`src/frontend/src/app/features/prescriptions/prescription.service.ts:24-25`
+(`Prescription.logo`/`.signature: string | null`, populated from the backend's base64-encoded snapshot)
+but never referenced anywhere in the template.
+
+Forming an independent verdict rather than restating verification's F-8: I agree this is real and Medium,
+not higher and not nothing. `implementation-brd.md`'s Doctor/clinic details spec is unambiguous about
+*why* `Logo`/`Signature` exist as columns at all — *"This is the source for the header/footer of printed
+prescriptions"* — and `Prescription.CreateFromDoctorDetails` was built specifically to carry both fields
+into exactly this artifact (`Prescription.cs:22-23,41-42`), snapshot-isolated and unit-tested since Step 6.
+The data pipeline from `DoctorDetails` upload through to the Angular `Prescription` model is fully wired
+and correct; only the last rendering step is missing. It does not corrode data, does not violate any
+hard gate `verification-brd.md` names for this module (that list is immutability-only), and is arguably
+satisfied by the BRD's own looser wording ("Footer (basic notes/signature area)") — which is why this
+stays Medium and does not gate the step. But it is a genuine, cheap-to-close gap against a fixed spec's
+explicit stated purpose for these two fields, not a style nitpick: a doctor who uploads a clinic logo via
+Module 2 has no way to see it appear on a printed prescription today.
+
+**Suggested fix:** in the header/footer sections already present in the template, conditionally render
+`<img [src]="'data:image/png;base64,' + rx.logo" *ngIf="rx.logo">` (and the equivalent for `rx.signature`
+in the footer's signature area) when the corresponding field is non-null. No backend change needed — the
+data already round-trips correctly end to end.
+
+**No new instance of Step 12's CQ-1 (raw numeric id, no lookup/confirmation) in this scope.** Neither
+`ConsultationWorkflowComponent` nor `PrescriptionFormComponent` asks the doctor to type a patient/visit id
+by hand — `appointmentId`/`visitId` arrive as route parameters from links the daily schedule and the
+consultation success panel already generate, so this scope doesn't reintroduce the pattern CQ-1 flagged.
+
+---
+
+### Consistency Review
+
+Checked against all three references. No blocking findings.
+
+**Against `implementation-brd.md`'s fixed specs:**
+
+| Fixed rule | Verdict |
+|---|---|
+| Vitals mandatory at data-entry, non-nullable column + service-layer/API check | **Held**, and correctly — `StartConsultationRequest`'s nullable-`+[Required]` fields 400 a missing vital before `ConsultationService` runs at all. Closes CR-2's gap for this path (walk-in's own gap is untouched, as instructed, out of this scope). |
+| Temperature Celsius, BP two numeric columns, Weight `decimal(6,3)` | Held, unchanged (`AppDbContext.cs:65-66`). |
+| No draft/autosave path for an incomplete Visit | Held — `ConsultationService` has exactly one Visit-creating method, and it requires the full validated request. |
+| Post-creation edit boundary (vitals locked, complaints/diagnosis editable) | Held, enforced by DTO shape (`UpdateVisitRequest` has no vitals property) — confirmed live by the "smuggled `temperature: 999`" test, which I read in full. |
+| Prescription immutable — no update endpoint ever targets it | Held, enforced by *absence* of any `[HttpPut]`/`[HttpPatch]`/`[HttpDelete]` action — confirmed by reading `PrescriptionsController.cs` directly, not just trusting the 405 tests. |
+| `DoctorDetails` snapshotted at creation, never joined live | Held, unchanged since Step 6 (`Prescription.CreateFromDoctorDetails`). |
+| Medication free text + autocomplete, not a validation constraint | Held — `DrugName` is `required string`, no dictionary/enum; `DrugSuggestionService` is read-only. |
+| Autocomplete match semantics (open item in the module file) | Resolved as `Contains`, case-insensitive — matches the codebase's only other free-text-lookup precedent (Patient search). Reasonable, documented, cheap to revisit. |
+| No hosting-shaped infrastructure added | Held. |
+| Auth gates every new endpoint | Held for free via the global `FallbackPolicy`; confirmed by each controller's own `Endpoints_require_authentication` test, read in full. |
+
+**Against the rest of the codebase:** service-in-`Infrastructure`-not-`Application` placement (`CQ-4`,
+already an accepted, consistently-applied deviation as of Step 12) continues unchanged —
+`ConsultationService`/`PrescriptionService`/`DrugSuggestionService` all take `AppDbContext` directly and
+live in `Infrastructure/Services/`, matching every other service in the codebase. DTO
+naming/placement, primary-constructor services, private static `ToDto` mappers, one test class per
+controller with a fresh `AuthApiFactory` database per test, Angular standalone components with `inject()`
+and signals, `nonNullable` reactive forms — all match Steps 9/11/12 exactly. `VisitsController`'s absolute
+route-template override for `start-consultation` is a deliberate, documented, well-precedented ASP.NET
+Core technique (not a hack), chosen so Module 5 owns its whole HTTP surface without editing Module 4's
+controller — a reasonable call, consistent with how this codebase already keeps each module's controller
+self-contained.
+
+**Against the plan (`Modules/05-consultation-workflow.md`, `Modules/06-prescription-medication.md`):**
+every file path matches each module's declared API/Frontend surface exactly. Both modules' full build
+checklists map to real, present code — verified by reading the files, not by trusting the checked boxes.
+No undocumented deviation found. The two implementation-time decisions each module's own text explicitly
+left open (Step 13's post-creation edit boundary; Step 14's autocomplete match semantics) were both
+resolved with documented reasoning rather than escalated or silently invented — reviewed as design choices
+on their merits, not re-litigated, per the same standard Step 12's `Completed`-decision was judged against.
+Two further undocumented-but-reasonable implementation-time calls, noted for completeness rather than as
+findings: no status precondition on starting a consultation (any non-completed appointment can have a
+consultation started regardless of `Scheduled`/`Cancelled`/`NoShow`), and no explicit DB transaction
+wrapping `ConsultationService.StartConsultationAsync`'s single `SaveChangesAsync` call (correctly reasoned
+as unnecessary, since one call is already atomic — unlike `WalkInService`, which spans two).
+
+**On Step 12's still-open CR-1 through CR-4 (context, not re-reviewed):** confirmed independently via
+`git diff --stat 7a23d41 688802e -- src/backend/PatientManagement.Api/Controllers/AppointmentsController.cs src/backend/PatientManagement.Infrastructure/Services/AppointmentService.cs src/backend/PatientManagement.Infrastructure/Services/WalkInService.cs src/backend/PatientManagement.Infrastructure/Services/AppointmentSlotGuard.cs`
+that none of these four files changed between Step 13's merge and Step 14's tip — Steps 13/14 neither fix
+nor worsen CR-1 through CR-4. The one genuine interaction (ConsultationService trusting
+`appointment.PatientId`) is addressed above under Correctness as a Low, not routed as new work.
+
+---
+
+## Routing — what `implementation-brd` should address (tracked debt, does not block either step)
+
+Neither step requires any fix before being marked finished — both are **APPROVED**. For the record,
+carried forward as tracked debt (same non-blocking status Step 12's CR-5 through CR-10 and CQ-1 through
+CQ-4 already have):
+
+1. **CR-11** (Medium) — catch the unique-index `DbUpdateException` in `ConsultationService.StartConsultationAsync`
+   and rethrow as `ConsultationAlreadyStartedException`, same fix as Step 12's still-open CR-6, now needed
+   in two places.
+2. **CQ-5** (Medium) — render `Logo`/`Signature` in `PrintablePrescriptionComponent`'s header/footer when
+   non-null; concurs with and formally tracks `docs/verification-report.md`'s F-8.
+3. Step 12's **CR-1** (High, still open) now has a second consumer (`ConsultationService.StartConsultationAsync`,
+   noted above) in addition to `AppointmentService.CreateAsync` — worth weighting when CR-1 is next
+   prioritized, though this does not change CR-1's own severity or add a new CR number.
+
+Nothing here contradicts `verification-brd`'s PASS for Steps 13/14 — every finding above is either Medium/
+Low tracked debt outside what the test suite exercises, or an explicit, reasoned non-finding (the CR-1
+connection). Proceed: Step 15, and merging `impl/prescription-medication`, are both clear as far as this
+gate is concerned.
