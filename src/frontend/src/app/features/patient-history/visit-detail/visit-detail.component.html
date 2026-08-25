@@ -1,0 +1,66 @@
+@if (loading()) {
+  <p class="text-center py-5">Loading…</p>
+}
+
+@if (!loading() && errorMessage()) {
+  <div class="container py-4" style="max-width: 40rem;">
+    <div class="alert alert-danger" role="alert">{{ errorMessage() }}</div>
+  </div>
+}
+
+@if (!loading() && !errorMessage() && visit(); as v) {
+  <div class="container py-4" style="max-width: 40rem;">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <h1 class="h4 mb-0">Visit #{{ v.visitNumber }} — {{ v.visitDate | date: 'mediumDate' }}</h1>
+      <a class="btn btn-outline-secondary btn-sm" [routerLink]="['/patients', patientId, 'history']">Back to History</a>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6">Vitals</h2>
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Temperature</dt>
+          <dd class="col-sm-8">{{ v.temperature }} °C</dd>
+
+          <dt class="col-sm-4">Blood Pressure</dt>
+          <dd class="col-sm-8">{{ v.bpSystolic }}/{{ v.bpDiastolic }} mmHg</dd>
+
+          <dt class="col-sm-4">Pulse</dt>
+          <dd class="col-sm-8">{{ v.pulse }} bpm</dd>
+
+          <dt class="col-sm-4">Weight</dt>
+          <dd class="col-sm-8">{{ v.weight }} kg</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6">Complaints</h2>
+        <p>{{ v.complaints ?? '—' }}</p>
+        <h2 class="h6">Diagnosis</h2>
+        <p class="mb-0">{{ v.diagnosis ?? '—' }}</p>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h6">Prescriptions</h2>
+        @if (v.prescriptions.length === 0) {
+          <p class="text-muted mb-0">No prescriptions recorded for this visit.</p>
+        }
+        @if (v.prescriptions.length > 0) {
+          <ul class="list-unstyled mb-0">
+            @for (rx of v.prescriptions; track rx.id) {
+              <li>
+                <a [routerLink]="['/prescriptions', rx.id]">
+                  {{ rx.createdAt | date: 'medium' }} — {{ rx.items.length }} item(s)
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  </div>
+}
