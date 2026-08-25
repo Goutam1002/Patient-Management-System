@@ -56,6 +56,16 @@ describe('PatientProfileComponent', () => {
     expect(text).toContain('Bob');
   });
 
+  it('links to the export page pre-filled for a single-patient PDF', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(`${environment.apiUrl}/patients/5`).flush(existing);
+    fixture.detectChanges();
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[routerlink="/export"]');
+    expect(link).toBeTruthy();
+    expect(link!.textContent).toContain('Export PDF');
+  });
+
   it('shows an error message when loading fails', () => {
     fixture.detectChanges();
     httpMock

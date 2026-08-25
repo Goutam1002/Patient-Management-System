@@ -7,6 +7,7 @@ import { LoginComponent } from './features/auth/login/login.component';
 import { ConsultationWorkflowComponent } from './features/consultation/consultation-workflow/consultation-workflow.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { DoctorDetailsFormComponent } from './features/doctor-details/doctor-details-form/doctor-details-form.component';
+import { ExportPageComponent } from './features/export/export-page/export-page.component';
 import { VisitDetailComponent } from './features/patient-history/visit-detail/visit-detail.component';
 import { VisitHistoryListComponent } from './features/patient-history/visit-history-list/visit-history-list.component';
 import { PatientEditComponent } from './features/patients/patient-edit/patient-edit.component';
@@ -25,6 +26,11 @@ export const routes: Routes = [
   {
     path: 'doctor-details',
     component: DoctorDetailsFormComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'export',
+    component: ExportPageComponent,
     canActivate: [authGuard],
   },
   {

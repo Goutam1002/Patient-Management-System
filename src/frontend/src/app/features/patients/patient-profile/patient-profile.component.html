@@ -16,6 +16,7 @@
           <h1 class="h4 mb-0">{{ p.name }}</h1>
           <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary btn-sm" [routerLink]="['/patients', patientId, 'history']">History</a>
+            <a class="btn btn-outline-secondary btn-sm" routerLink="/export" [queryParams]="{ format: 'pdf', patientId: patientId }">Export PDF</a>
             <a class="btn btn-outline-primary btn-sm" [routerLink]="['/patients', patientId, 'edit']">Edit</a>
           </div>
         </div>

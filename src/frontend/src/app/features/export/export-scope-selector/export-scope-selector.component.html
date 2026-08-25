@@ -1,0 +1,35 @@
+<div class="mb-3">
+  <label class="form-label d-block">Scope</label>
+  <div class="btn-group" role="group">
+    <input type="radio" class="btn-check" id="scopeModePatients" [formControl]="mode" value="patients" />
+    <label class="btn btn-outline-primary btn-sm" for="scopeModePatients">Selected Patients</label>
+    <input type="radio" class="btn-check" id="scopeModeDateRange" [formControl]="mode" value="dateRange" />
+    <label class="btn btn-outline-primary btn-sm" for="scopeModeDateRange">Date Range</label>
+  </div>
+</div>
+
+<form [formGroup]="form">
+  @if (mode.value === 'patients') {
+    <div class="mb-3">
+      <label class="form-label" for="scopePatientIds">Patient IDs (comma-separated)</label>
+      <input
+        id="scopePatientIds"
+        type="text"
+        class="form-control"
+        placeholder="e.g. 0, 3, 7"
+        formControlName="patientIds"
+      />
+    </div>
+  } @else {
+    <div class="row g-2 mb-3">
+      <div class="col-auto">
+        <label class="form-label small mb-0" for="scopeDateFrom">From</label>
+        <input id="scopeDateFrom" type="date" class="form-control form-control-sm" formControlName="from" />
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-0" for="scopeDateTo">To</label>
+        <input id="scopeDateTo" type="date" class="form-control form-control-sm" formControlName="to" />
+      </div>
+    </div>
+  }
+</form>

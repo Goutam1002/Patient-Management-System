@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<Visit> Visits => Set<Visit>();
     public DbSet<Prescription> Prescriptions => Set<Prescription>();
     public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
+    public DbSet<ExportAuditLog> ExportAuditLogs => Set<ExportAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,6 +100,16 @@ public class AppDbContext : DbContext
                   .WithMany(p => p.Items)
                   .HasForeignKey(i => i.PrescriptionId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExportAuditLog>(entity =>
+        {
+            entity.Property(e => e.ScopeDetail).IsRequired();
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
