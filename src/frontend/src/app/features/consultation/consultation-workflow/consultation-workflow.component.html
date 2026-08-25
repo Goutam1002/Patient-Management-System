@@ -1,0 +1,48 @@
+<div class="container py-4" style="max-width: 40rem;">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      @if (mode() === 'create') {
+        <h1 class="h4 mb-1">Start Consultation</h1>
+        <p class="text-muted small">
+          Vitals, complaints, and diagnosis in one screen — no separate booking step.
+        </p>
+      } @else {
+        <h1 class="h4 mb-1">Visit{{ visit() ? ' #' + visit()!.visitNumber : '' }}</h1>
+        <p class="text-muted small">
+          Vitals are locked once recorded. Complaints and diagnosis can still be updated.
+        </p>
+      }
+
+      @if (loading()) {
+        <p class="text-muted">Loading…</p>
+      } @else {
+        @if (createdVisit(); as created) {
+          <div class="alert alert-success" role="alert">
+            Visit #{{ created.visitNumber }} recorded for patient {{ created.patientId }}.
+          </div>
+          <button type="button" class="btn btn-primary" (click)="goToSchedule()">
+            Back to Daily Schedule
+          </button>
+        } @else {
+          <form (ngSubmit)="submit()" novalidate>
+            <app-vitals-form [group]="vitalsGroup" />
+            <app-complaints [control]="complaintsControl" />
+            <app-diagnosis [control]="diagnosisControl" />
+
+            @if (errorMessage()) {
+              <div class="alert alert-danger py-2" role="alert">{{ errorMessage() }}</div>
+            }
+
+            @if (mode() === 'edit' && savedJustNow()) {
+              <div class="alert alert-success py-2" role="alert">Changes saved.</div>
+            }
+
+            <button type="submit" class="btn btn-primary" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : (mode() === 'create' ? 'Record Visit' : 'Save Changes') }}
+            </button>
+          </form>
+        }
+      }
+    </div>
+  </div>
+</div>

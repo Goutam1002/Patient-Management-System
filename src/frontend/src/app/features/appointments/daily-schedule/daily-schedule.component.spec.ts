@@ -93,6 +93,19 @@ describe('DailyScheduleComponent', () => {
     expect(fixture.componentInstance.updatingId()).toBeNull();
   });
 
+  it('links a scheduled, no-visit appointment straight to Start Consultation', () => {
+    loadWith([scheduled, walkIn]);
+
+    const rows = (fixture.nativeElement as HTMLElement).querySelectorAll('tbody tr');
+    const startLink = rows[0].querySelector<HTMLAnchorElement>('a.btn');
+    expect(startLink?.textContent).toContain('Start Consultation');
+    expect(startLink?.getAttribute('href')).toBe('/appointments/1/consultation');
+
+    // The already-completed walk-in links to the recorded visit instead.
+    const visitLink = rows[1].querySelector<HTMLAnchorElement>('a.badge');
+    expect(visitLink?.getAttribute('href')).toBe('/visits/77');
+  });
+
   it('shows a message when the day is empty', () => {
     loadWith([]);
 
