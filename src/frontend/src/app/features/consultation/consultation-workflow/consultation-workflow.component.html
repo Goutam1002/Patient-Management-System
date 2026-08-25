@@ -20,7 +20,10 @@
           <div class="alert alert-success" role="alert">
             Visit #{{ created.visitNumber }} recorded for patient {{ created.patientId }}.
           </div>
-          <button type="button" class="btn btn-primary" (click)="goToSchedule()">
+          <button type="button" class="btn btn-primary me-2" (click)="goToPrescription()">
+            Add Prescription
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="goToSchedule()">
             Back to Daily Schedule
           </button>
         } @else {

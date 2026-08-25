@@ -10,6 +10,8 @@ import { DoctorDetailsFormComponent } from './features/doctor-details/doctor-det
 import { PatientEditComponent } from './features/patients/patient-edit/patient-edit.component';
 import { PatientProfileComponent } from './features/patients/patient-profile/patient-profile.component';
 import { PatientRegistrationFormComponent } from './features/patients/patient-registration-form/patient-registration-form.component';
+import { PrescriptionFormComponent } from './features/prescriptions/prescription-form/prescription-form.component';
+import { PrintablePrescriptionComponent } from './features/prescriptions/printable-prescription/printable-prescription.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -44,8 +46,18 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'visits/:visitId/prescriptions/new',
+    component: PrescriptionFormComponent,
+    canActivate: [authGuard],
+  },
+  {
     path: 'visits/:visitId',
     component: ConsultationWorkflowComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'prescriptions/:id',
+    component: PrintablePrescriptionComponent,
     canActivate: [authGuard],
   },
   {

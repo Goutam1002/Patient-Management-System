@@ -1,0 +1,63 @@
+<div class="container py-4" style="max-width: 44rem;">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h1 class="h4 mb-1">Prescription</h1>
+      <p class="text-muted small">
+        Add each medicine as a line item — free text, with suggestions from your prior prescriptions.
+      </p>
+
+      <form (ngSubmit)="submit()" novalidate>
+        @for (group of items.controls; track $index; let i = $index) {
+          <div class="border rounded p-3 mb-3" [formGroup]="group">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h2 class="h6 mb-0">Medicine {{ i + 1 }}</h2>
+              @if (items.length > 1) {
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeItem(i)">Remove</button>
+              }
+            </div>
+
+            <div class="mb-2">
+              <label [for]="'drugName' + i" class="form-label">Drug name</label>
+              <app-drug-name-typeahead [id]="'drugName' + i" [control]="group.controls.drugName" />
+              @if (group.controls.drugName.invalid && group.controls.drugName.touched) {
+                <div class="text-danger small">Drug name is required.</div>
+              }
+            </div>
+
+            <div class="row">
+              <div class="col mb-2">
+                <label [for]="'dosage' + i" class="form-label">Dosage</label>
+                <input [id]="'dosage' + i" type="text" class="form-control" formControlName="dosage" />
+              </div>
+              <div class="col mb-2">
+                <label [for]="'frequency' + i" class="form-label">Frequency</label>
+                <input [id]="'frequency' + i" type="text" class="form-control" formControlName="frequency" />
+              </div>
+              <div class="col mb-2">
+                <label [for]="'duration' + i" class="form-label">Duration</label>
+                <input [id]="'duration' + i" type="text" class="form-control" formControlName="duration" />
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label [for]="'instructions' + i" class="form-label">Instructions</label>
+              <input [id]="'instructions' + i" type="text" class="form-control" formControlName="instructions" />
+            </div>
+          </div>
+        }
+
+        <button type="button" class="btn btn-outline-secondary mb-3" (click)="addItem()">+ Add another medicine</button>
+
+        @if (errorMessage()) {
+          <div class="alert alert-danger py-2" role="alert">{{ errorMessage() }}</div>
+        }
+
+        <div>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            {{ saving() ? 'Saving…' : 'Save & Print' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

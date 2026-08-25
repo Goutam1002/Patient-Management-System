@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { Visit } from '../consultation.service';
 import { ConsultationWorkflowComponent } from './consultation-workflow.component';
@@ -87,6 +87,23 @@ describe('ConsultationWorkflowComponent -- create mode (start-consultation)', ()
 
     expect(fixture.componentInstance.visit()?.visitNumber).toBe(1);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Visit #1 recorded');
+  });
+
+  it('offers a one-click path into Module 6 (Add Prescription) from the post-visit success panel', () => {
+    const router = TestBed.inject(Router);
+    const navigateSpy = spyOn(router, 'navigate');
+    fillVitals(fixture);
+    fixture.componentInstance.submit();
+    httpMock.expectOne(`${environment.apiUrl}/appointments/3/start-consultation`).flush(recordedVisit);
+    fixture.detectChanges();
+
+    const addPrescriptionButton = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+    ).find((button) => button.textContent?.includes('Add Prescription'));
+    expect(addPrescriptionButton).toBeTruthy();
+
+    fixture.componentInstance.goToPrescription();
+    expect(navigateSpy).toHaveBeenCalledWith(['/visits', 9, 'prescriptions', 'new']);
   });
 
   it('explains a slot/visit conflict when the API returns 409', () => {

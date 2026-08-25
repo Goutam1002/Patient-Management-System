@@ -31,6 +31,8 @@ builder.Services.AddScoped<IDoctorDetailsService, DoctorDetailsService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IConsultationService, ConsultationService>();
+builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
+builder.Services.AddScoped<IDrugSuggestionService, DrugSuggestionService>();
 builder.Services.AddSingleton<ISessionTokenStore, InMemorySessionTokenStore>();
 
 // Every controller requires a valid session token by default; the login

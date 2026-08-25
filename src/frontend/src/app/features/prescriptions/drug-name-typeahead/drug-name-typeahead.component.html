@@ -1,0 +1,19 @@
+<div class="position-relative">
+  <input
+    [id]="id"
+    type="text"
+    class="form-control"
+    autocomplete="off"
+    [formControl]="control"
+    (input)="onInput($any($event.target).value)"
+    (focus)="onInput(control.value)"
+    (blur)="onBlur()"
+  />
+  @if (suggestionsOpen() && suggestions().length > 0) {
+    <ul class="list-group position-absolute w-100 shadow-sm" style="z-index: 10;">
+      @for (name of suggestions(); track name) {
+        <li class="list-group-item list-group-item-action py-1" (mousedown)="select(name)">{{ name }}</li>
+      }
+    </ul>
+  }
+</div>
