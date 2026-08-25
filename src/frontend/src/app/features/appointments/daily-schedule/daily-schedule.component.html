@@ -1,0 +1,83 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <h1 class="h4 mb-0">Daily Schedule</h1>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-primary" routerLink="/appointments/new">Schedule Appointment</a>
+      <a class="btn btn-primary" routerLink="/appointments/walk-in">Register Walk-in</a>
+    </div>
+  </div>
+
+  <div class="row g-2 align-items-end mb-3">
+    <div class="col-auto">
+      <label for="scheduleDate" class="form-label">Date</label>
+      <input
+        id="scheduleDate"
+        type="date"
+        class="form-control"
+        [formControl]="dateControl"
+        (change)="load()"
+      />
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger py-2" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (loading()) {
+    <p class="text-muted">Loading…</p>
+  } @else if (appointments().length === 0) {
+    <p class="text-muted">No appointments for this date.</p>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th scope="col">Time</th>
+            <th scope="col">Patient</th>
+            <th scope="col">Duration</th>
+            <th scope="col">Status</th>
+            <th scope="col">Visit</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (appointment of appointments(); track appointment.id) {
+            <tr>
+              <td>{{ appointment.scheduledTime | date: 'shortTime' }}</td>
+              <td>
+                <a [routerLink]="['/patients', appointment.patientId]">{{ appointment.patientName }}</a>
+              </td>
+              <td>{{ appointment.durationMinutes }} min</td>
+              <td>
+                @if (appointment.status === 'Completed') {
+                  <!-- Completed is set only by recording a visit, never by hand -- so no control here. -->
+                  <span class="badge" [class]="statusBadgeClass(appointment.status)">Completed</span>
+                } @else {
+                  <select
+                    class="form-select form-select-sm"
+                    style="max-width: 10rem"
+                    [attr.aria-label]="'Status for ' + appointment.patientName"
+                    [value]="appointment.status"
+                    [disabled]="updatingId() === appointment.id"
+                    (change)="changeStatus(appointment, $any($event.target).value)"
+                  >
+                    @for (status of settableStatuses; track status) {
+                      <option [value]="status" [selected]="status === appointment.status">{{ status }}</option>
+                    }
+                  </select>
+                }
+              </td>
+              <td>
+                @if (appointment.visitId !== null) {
+                  <span class="badge bg-info text-dark">Visit recorded</span>
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

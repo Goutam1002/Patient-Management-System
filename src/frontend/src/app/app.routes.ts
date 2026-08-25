@@ -1,4 +1,7 @@
 import { Routes } from '@angular/router';
+import { AppointmentFormComponent } from './features/appointments/appointment-form/appointment-form.component';
+import { DailyScheduleComponent } from './features/appointments/daily-schedule/daily-schedule.component';
+import { WalkInRegistrationComponent } from './features/appointments/walk-in-registration/walk-in-registration.component';
 import { authGuard } from './features/auth/auth.guard';
 import { LoginComponent } from './features/auth/login/login.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
@@ -17,6 +20,21 @@ export const routes: Routes = [
   {
     path: 'doctor-details',
     component: DoctorDetailsFormComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'appointments/new',
+    component: AppointmentFormComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'appointments/walk-in',
+    component: WalkInRegistrationComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'appointments',
+    component: DailyScheduleComponent,
     canActivate: [authGuard],
   },
   {
