@@ -12,11 +12,9 @@ public class WalkInService(AppDbContext db, TimeProvider timeProvider) : IWalkIn
     {
         var scheduledTime = timeProvider.GetLocalNow().LocalDateTime;
 
-        var slotTaken = await db.Appointments.AnyAsync(a => a.ScheduledTime == scheduledTime);
-        if (slotTaken)
-        {
-            throw new AppointmentSlotConflictException(scheduledTime);
-        }
+        // Same double-booking pre-check AppointmentService uses for scheduled
+        // bookings -- one shared guard so the two creation paths cannot drift.
+        await AppointmentSlotGuard.EnsureSlotIsFreeAsync(db, scheduledTime);
 
         var highestExistingVisitNumber = await db.Visits
             .Where(v => v.PatientId == request.PatientId)

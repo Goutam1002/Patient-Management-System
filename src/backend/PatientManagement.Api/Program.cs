@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    // Serialize/bind enums (AppointmentStatus) as their names rather than
+    // integers, so the Angular client works with "Scheduled"/"Cancelled"/
+    // "NoShow" instead of magic numbers that drift if the enum is reordered.
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -23,6 +29,7 @@ builder.Services.AddScoped<IWalkInService, WalkInService>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddScoped<IDoctorDetailsService, DoctorDetailsService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddSingleton<ISessionTokenStore, InMemorySessionTokenStore>();
 
 // Every controller requires a valid session token by default; the login

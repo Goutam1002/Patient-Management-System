@@ -1,0 +1,46 @@
+<div class="container py-4" style="max-width: 40rem;">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h1 class="h4 mb-3">Schedule Appointment</h1>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="mb-3">
+          <label for="patientId" class="form-label">Patient ID</label>
+          <input id="patientId" type="number" min="0" class="form-control" formControlName="patientId" />
+        </div>
+
+        <div class="row">
+          <div class="col mb-3">
+            <label for="date" class="form-label">Date</label>
+            <input id="date" type="date" class="form-control" formControlName="date" />
+          </div>
+          <div class="col mb-3">
+            <label for="time" class="form-label">Time</label>
+            <input id="time" type="time" class="form-control" formControlName="time" />
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="durationMinutes" class="form-label">Duration (minutes)</label>
+          <input
+            id="durationMinutes"
+            type="number"
+            min="1"
+            class="form-control"
+            formControlName="durationMinutes"
+            placeholder="Enter the slot length for this appointment"
+          />
+          <div class="form-text">Entered per appointment — there is no default duration.</div>
+        </div>
+
+        @if (errorMessage()) {
+          <div class="alert alert-danger py-2" role="alert">{{ errorMessage() }}</div>
+        }
+
+        <button type="submit" class="btn btn-primary" [disabled]="saving()">
+          {{ saving() ? 'Scheduling…' : 'Schedule' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
