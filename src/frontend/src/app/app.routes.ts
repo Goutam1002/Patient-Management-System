@@ -4,6 +4,7 @@ import { DailyScheduleComponent } from './features/appointments/daily-schedule/d
 import { WalkInRegistrationComponent } from './features/appointments/walk-in-registration/walk-in-registration.component';
 import { authGuard } from './features/auth/auth.guard';
 import { LoginComponent } from './features/auth/login/login.component';
+import { ConsultationWorkflowComponent } from './features/consultation/consultation-workflow/consultation-workflow.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { DoctorDetailsFormComponent } from './features/doctor-details/doctor-details-form/doctor-details-form.component';
 import { PatientEditComponent } from './features/patients/patient-edit/patient-edit.component';
@@ -35,6 +36,16 @@ export const routes: Routes = [
   {
     path: 'appointments',
     component: DailyScheduleComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'appointments/:appointmentId/consultation',
+    component: ConsultationWorkflowComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'visits/:visitId',
+    component: ConsultationWorkflowComponent,
     canActivate: [authGuard],
   },
   {
