@@ -68,7 +68,7 @@ describe('PrescriptionFormComponent', () => {
     expect(fixture.componentInstance.items.length).toBe(1); // last row stays
   });
 
-  it('submits every line item against the visit-nested route and navigates to the printable view', () => {
+  it('submits every line item against the visit-nested route and returns to the Appointments tab', () => {
     const navigateSpy = spyOn(router, 'navigate');
     fixture.componentInstance.itemGroup(0).setValue({
       drugName: 'Paracetamol',
@@ -95,7 +95,7 @@ describe('PrescriptionFormComponent', () => {
     });
     req.flush(created);
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/prescriptions', 7]);
+    expect(navigateSpy).toHaveBeenCalledWith(['/appointments']);
   });
 
   it('shows an error message when saving fails', () => {
