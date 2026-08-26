@@ -36,6 +36,7 @@ public class MigrationSmokeTests
             Assert.Contains(appliedMigrations, m => m.EndsWith("_AddPatients"));
             Assert.Contains(appliedMigrations, m => m.EndsWith("_AddAppointmentsAndVisits"));
             Assert.Contains(appliedMigrations, m => m.EndsWith("_AddPrescriptions"));
+            Assert.Contains(appliedMigrations, m => m.EndsWith("_AddExportAuditLog"));
         }
         finally
         {

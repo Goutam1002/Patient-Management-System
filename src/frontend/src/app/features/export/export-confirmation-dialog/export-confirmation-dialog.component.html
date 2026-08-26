@@ -1,0 +1,19 @@
+@if (open) {
+  <div class="modal d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.5)">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Export</h5>
+        </div>
+        <div class="modal-body">
+          <p>{{ summary }}</p>
+          <p class="text-muted small mb-0">This export will be recorded in the export audit log.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="cancel.emit()">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="confirm.emit()">Confirm Export</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

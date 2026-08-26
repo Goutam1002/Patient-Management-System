@@ -40,4 +40,10 @@ describe('DashboardComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent;
     expect(text).toContain('Recent Patients');
   });
+
+  it('links to the export page', () => {
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[routerlink="/export"]');
+    expect(link).toBeTruthy();
+    expect(link!.textContent).toContain('Export Data');
+  });
 });

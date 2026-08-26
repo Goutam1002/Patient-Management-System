@@ -1,0 +1,51 @@
+<div class="container py-4" style="max-width: 40rem">
+  <h1 class="h4 mb-4">Export Patient Data</h1>
+
+  <div class="mb-3">
+    <label class="form-label d-block">Format</label>
+    <div class="btn-group" role="group">
+      <input type="radio" class="btn-check" id="formatCsv" [formControl]="format" value="csv" />
+      <label class="btn btn-outline-primary btn-sm" for="formatCsv">CSV</label>
+      <input type="radio" class="btn-check" id="formatPdf" [formControl]="format" value="pdf" />
+      <label class="btn btn-outline-primary btn-sm" for="formatPdf">PDF</label>
+    </div>
+  </div>
+
+  @if (format.value === 'csv') {
+    <app-export-scope-selector (scopeChange)="onCsvScopeChange($event)" />
+  } @else {
+    <div class="mb-3">
+      <label class="form-label" for="pdfPatientId">Patient ID</label>
+      <input id="pdfPatientId" type="number" class="form-control" [formControl]="pdfPatientId" />
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-auto">
+        <label class="form-label small mb-0" for="pdfFrom">From (optional)</label>
+        <input id="pdfFrom" type="date" class="form-control form-control-sm" [formControl]="pdfFrom" />
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-0" for="pdfTo">To (optional)</label>
+        <input id="pdfTo" type="date" class="form-control form-control-sm" [formControl]="pdfTo" />
+      </div>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger" role="alert">{{ errorMessage() }}</div>
+  }
+
+  <button type="button" class="btn btn-primary" [disabled]="!canExport || exporting()" (click)="requestExport()">
+    @if (exporting()) {
+      Exporting…
+    } @else {
+      Export
+    }
+  </button>
+</div>
+
+<app-export-confirmation-dialog
+  [open]="confirmDialogOpen()"
+  [summary]="confirmSummary"
+  (confirm)="confirmExport()"
+  (cancel)="cancelExport()"
+/>
