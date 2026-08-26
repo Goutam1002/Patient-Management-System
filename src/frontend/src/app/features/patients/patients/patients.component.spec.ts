@@ -40,4 +40,10 @@ describe('PatientsComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent;
     expect(text).toContain('Recent Patients');
   });
+
+  it('has an Add Patient button linking to /patients/new', () => {
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[routerlink="/patients/new"]');
+    expect(link).toBeTruthy();
+    expect(link!.textContent).toContain('Add Patient');
+  });
 });
