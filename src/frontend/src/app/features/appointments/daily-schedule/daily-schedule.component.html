@@ -73,12 +73,21 @@
                     <a class="btn btn-sm btn-outline-info" [routerLink]="['/visits', appointment.visitId]">
                       View Consultation
                     </a>
-                    <a
-                      class="btn btn-sm btn-outline-primary"
-                      [routerLink]="['/visits', appointment.visitId, 'prescriptions', 'new']"
-                    >
-                      Add Prescription
-                    </a>
+                    @if (appointment.hasPrescription) {
+                      <a
+                        class="btn btn-sm btn-outline-success"
+                        [routerLink]="['/patients', appointment.patientId, 'visits', appointment.visitId]"
+                      >
+                        View Prescription
+                      </a>
+                    } @else {
+                      <a
+                        class="btn btn-sm btn-outline-primary"
+                        [routerLink]="['/visits', appointment.visitId, 'prescriptions', 'new']"
+                      >
+                        Add Prescription
+                      </a>
+                    }
                   </div>
                 } @else if (appointment.status === 'Scheduled') {
                   <a class="btn btn-sm btn-outline-primary" [routerLink]="['/appointments', appointment.id, 'consultation']">

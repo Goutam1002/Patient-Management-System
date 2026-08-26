@@ -179,6 +179,52 @@ public class AppointmentServiceTests
         Assert.Null(daily[2].VisitId);
     }
 
+    [Fact]
+    public async Task Daily_list_marks_HasPrescription_true_only_once_a_prescription_exists_for_the_visit()
+    {
+        await using var db = CreateContext(nameof(Daily_list_marks_HasPrescription_true_only_once_a_prescription_exists_for_the_visit));
+        var alice = await AddPatientAsync(db, "Alice");
+        var bob = await AddPatientAsync(db, "Bob");
+        var day = new DateOnly(2026, 3, 2);
+
+        var withPrescription = new Appointment
+        {
+            PatientId = alice.PatientId,
+            ScheduledTime = day.ToDateTime(new TimeOnly(9, 0)),
+            DurationMinutes = 15,
+            Status = AppointmentStatus.Completed,
+        };
+        var withoutPrescription = new Appointment
+        {
+            PatientId = bob.PatientId,
+            ScheduledTime = day.ToDateTime(new TimeOnly(10, 0)),
+            DurationMinutes = 15,
+            Status = AppointmentStatus.Completed,
+        };
+        db.Appointments.AddRange(withPrescription, withoutPrescription);
+        await db.SaveChangesAsync();
+
+        var visitWithPrescription = new Visit { PatientId = alice.PatientId, AppointmentId = withPrescription.Id, VisitNumber = 1 };
+        var visitWithoutPrescription = new Visit { PatientId = bob.PatientId, AppointmentId = withoutPrescription.Id, VisitNumber = 1 };
+        db.Visits.AddRange(visitWithPrescription, visitWithoutPrescription);
+        await db.SaveChangesAsync();
+
+        db.Prescriptions.Add(new Prescription
+        {
+            VisitId = visitWithPrescription.Id,
+            CreatedAt = day.ToDateTime(new TimeOnly(9, 30)),
+            ClinicName = "Sunrise Clinic",
+            DoctorName = "Dr. Test",
+        });
+        await db.SaveChangesAsync();
+
+        var service = new AppointmentService(db);
+        var daily = await service.GetDailyAsync(day);
+
+        Assert.True(daily.Single(a => a.Id == withPrescription.Id).HasPrescription);
+        Assert.False(daily.Single(a => a.Id == withoutPrescription.Id).HasPrescription);
+    }
+
     [Theory]
     [InlineData(AppointmentStatus.Cancelled)]
     [InlineData(AppointmentStatus.NoShow)]

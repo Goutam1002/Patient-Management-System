@@ -207,6 +207,25 @@ public class AppointmentsControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task Daily_list_reports_HasPrescription_only_once_a_prescription_exists_for_the_visit()
+    {
+        var alice = await CreatePatientAsync(_client, "Alice");
+        var bob = await CreatePatientAsync(_client, "Bob");
+
+        var withRx = await PostWalkInAsync(_client, alice);
+        var withoutRx = await PostWalkInAsync(_client, bob);
+
+        using var createRx = await AuthenticatedRequestAsync(HttpMethod.Post, $"/api/visits/{withRx.VisitId}/prescriptions");
+        createRx.Content = JsonContent.Create(new { items = new[] { new { drugName = "Paracetamol", dosage = "500mg" } } });
+        (await _client.SendAsync(createRx)).EnsureSuccessStatusCode();
+
+        var daily = await GetDailyAsync(_client, DateOnly.FromDateTime(DateTime.Today));
+
+        Assert.True(daily.Single(a => a.Id == withRx.AppointmentId).HasPrescription);
+        Assert.False(daily.Single(a => a.Id == withoutRx.AppointmentId).HasPrescription);
+    }
+
+    [Fact]
     public async Task Endpoints_require_authentication()
     {
         var daily = await _client.GetAsync("/api/appointments/daily?date=2026-03-02");

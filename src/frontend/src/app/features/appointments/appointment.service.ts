@@ -32,6 +32,8 @@ export interface Appointment {
   status: AppointmentStatus;
   /** Null until the appointment has produced a visit. */
   visitId: number | null;
+  /** True once at least one Prescription exists for this appointment's visit. */
+  hasPrescription: boolean;
 }
 
 export interface CreateAppointmentRequest {

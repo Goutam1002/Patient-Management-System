@@ -18,6 +18,7 @@ describe('DailyScheduleComponent', () => {
     durationMinutes: 45,
     status: 'Scheduled',
     visitId: null,
+    hasPrescription: false,
   };
 
   const walkIn: Appointment = {
@@ -28,6 +29,7 @@ describe('DailyScheduleComponent', () => {
     durationMinutes: 10,
     status: 'Completed',
     visitId: 77,
+    hasPrescription: false,
   };
 
   beforeEach(async () => {
@@ -108,6 +110,16 @@ describe('DailyScheduleComponent', () => {
     const prescriptionLink = links.find((a) => a.textContent?.includes('Add Prescription'));
     expect(viewLink?.getAttribute('href')).toBe('/visits/77');
     expect(prescriptionLink?.getAttribute('href')).toBe('/visits/77/prescriptions/new');
+  });
+
+  it('shows View Prescription instead of Add Prescription once a prescription exists', () => {
+    loadWith([{ ...walkIn, hasPrescription: true }]);
+
+    const row = (fixture.nativeElement as HTMLElement).querySelector('tbody tr')!;
+    const links = Array.from(row.querySelectorAll<HTMLAnchorElement>('td:last-child a'));
+    const viewPrescriptionLink = links.find((a) => a.textContent?.includes('View Prescription'));
+    expect(viewPrescriptionLink?.getAttribute('href')).toBe('/patients/6/visits/77');
+    expect(links.some((a) => a.textContent?.includes('Add Prescription'))).toBeFalse();
   });
 
   it('shows a message when the day is empty', () => {

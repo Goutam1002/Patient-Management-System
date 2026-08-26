@@ -22,6 +22,7 @@ describe('AppointmentService', () => {
     durationMinutes: 45,
     status: 'Scheduled',
     visitId: null,
+    hasPrescription: false,
   };
 
   beforeEach(() => {
