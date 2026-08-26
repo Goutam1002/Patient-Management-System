@@ -23,4 +23,7 @@ public class AppointmentDto
 
     /// <summary>Null until a visit exists for this appointment.</summary>
     public int? VisitId { get; set; }
+
+    /// <summary>True once at least one Prescription exists for this appointment's visit.</summary>
+    public bool HasPrescription { get; set; }
 }

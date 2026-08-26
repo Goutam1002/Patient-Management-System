@@ -33,7 +33,7 @@ public class AppointmentService(AppDbContext db) : IAppointmentService
         db.Appointments.Add(appointment);
         await db.SaveChangesAsync();
 
-        return ToDto(appointment, patient.Name, visitId: null);
+        return ToDto(appointment, patient.Name, visitId: null, hasPrescription: false);
     }
 
     public async Task<IReadOnlyList<AppointmentDto>> GetDailyAsync(DateOnly date)
@@ -61,11 +61,22 @@ public class AppointmentService(AppDbContext db) : IAppointmentService
             .Where(v => appointmentIds.Contains(v.AppointmentId))
             .ToDictionaryAsync(v => v.AppointmentId, v => v.Id);
 
+        var visitIds = visitIdsByAppointment.Values.ToList();
+        var visitIdsWithPrescriptions = (await db.Prescriptions
+            .AsNoTracking()
+            .Where(p => visitIds.Contains(p.VisitId))
+            .Select(p => p.VisitId)
+            .Distinct()
+            .ToListAsync())
+            .ToHashSet();
+
         return appointments
-            .Select(a => ToDto(
-                a,
-                a.Patient?.Name ?? string.Empty,
-                visitIdsByAppointment.TryGetValue(a.Id, out var visitId) ? visitId : null))
+            .Select(a =>
+            {
+                var visitId = visitIdsByAppointment.TryGetValue(a.Id, out var id) ? id : (int?)null;
+                var hasPrescription = visitId.HasValue && visitIdsWithPrescriptions.Contains(visitId.Value);
+                return ToDto(a, a.Patient?.Name ?? string.Empty, visitId, hasPrescription);
+            })
             .ToList();
     }
 
@@ -100,11 +111,12 @@ public class AppointmentService(AppDbContext db) : IAppointmentService
             .Where(v => v.AppointmentId == appointment.Id)
             .Select(v => (int?)v.Id)
             .FirstOrDefaultAsync();
+        var hasPrescription = visitId.HasValue && await db.Prescriptions.AnyAsync(p => p.VisitId == visitId.Value);
 
-        return ToDto(appointment, appointment.Patient?.Name ?? string.Empty, visitId);
+        return ToDto(appointment, appointment.Patient?.Name ?? string.Empty, visitId, hasPrescription);
     }
 
-    private static AppointmentDto ToDto(Appointment appointment, string patientName, int? visitId) => new()
+    private static AppointmentDto ToDto(Appointment appointment, string patientName, int? visitId, bool hasPrescription) => new()
     {
         Id = appointment.Id,
         PatientId = appointment.PatientId,
@@ -113,5 +125,6 @@ public class AppointmentService(AppDbContext db) : IAppointmentService
         DurationMinutes = appointment.DurationMinutes,
         Status = appointment.Status,
         VisitId = visitId,
+        HasPrescription = hasPrescription,
     };
 }
