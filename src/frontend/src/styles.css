@@ -1,1 +1,11 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Global print rule: anything marked .no-print (the app header, action
+   buttons, etc.) is excluded from printed output wherever it appears --
+   consistent with printable-prescription.component.css's own local rule for
+   that page's Back/Print buttons. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

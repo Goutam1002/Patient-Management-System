@@ -1,17 +1,17 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { PatientSearchBarComponent } from '../search/patient-search-bar/patient-search-bar.component';
-import { RecentPatientsListComponent } from '../search/recent-patients-list/recent-patients-list.component';
 
 /**
- * Module 8 (Search & Navigation) gives the placeholder Dashboard from Step 10
- * its first real content -- per that step's own note ("replace this
- * component's content rather than adding a second route"), not a new route.
+ * Post-login landing page (Step 10). Module 8 (Step 16) had mounted patient
+ * search/recent-patients here in the absence of a header/nav shell; the new
+ * global header (ad hoc step, see docs/implementation-progress.md) gives
+ * Patients its own route and nav entry, so this reverts to lean placeholder
+ * content -- still a valid landing page, just no longer their host.
  */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [PatientSearchBarComponent, RecentPatientsListComponent, RouterLink],
+  imports: [RouterLink],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent {}
