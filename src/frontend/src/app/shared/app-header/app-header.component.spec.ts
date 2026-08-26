@@ -47,6 +47,40 @@ describe('AppHeaderComponent', () => {
     expect(img!.getAttribute('src')).toBe('data:image/*;base64,AAAA');
   });
 
+  it('renders the clinic name from DoctorDetails instead of a hardcoded label', () => {
+    create();
+    httpMock.expectOne(`${environment.apiUrl}/doctor-details`).flush({
+      id: 0,
+      clinicName: 'Sunrise Clinic',
+      doctorName: 'Dr. Test',
+      qualifications: null,
+      registrationNumber: null,
+      logo: null,
+      signature: null,
+    });
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent;
+    expect(text).toContain('Sunrise Clinic');
+  });
+
+  it('falls back to "Clinic" when DoctorDetails has no clinic name configured yet', () => {
+    create();
+    httpMock.expectOne(`${environment.apiUrl}/doctor-details`).flush({
+      id: 0,
+      clinicName: '',
+      doctorName: '',
+      qualifications: null,
+      registrationNumber: null,
+      logo: null,
+      signature: null,
+    });
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent;
+    expect(text).toContain('Clinic');
+  });
+
   it('shows a placeholder icon when no logo has been uploaded', () => {
     create();
     httpMock.expectOne(`${environment.apiUrl}/doctor-details`).flush({
