@@ -7,12 +7,9 @@ import { SearchService } from '../search.service';
 /**
  * Quick patient search -- two independent fields (Name, Phone), matching the
  * backend's own AND-combined contains-semantics contract 1:1 rather than
- * inventing single-box OR semantics the API doesn't support. Meant to be
- * mounted once, globally, per Modules/08-search-navigation.md; currently
- * hosted on the Dashboard (see dashboard.component), the app's post-login
- * landing screen, rather than a persistent header -- this app has no header
- * shell yet and adding one is a bigger change than this module's checklist
- * calls for.
+ * inventing single-box OR semantics the API doesn't support. Hosted on the
+ * dedicated /patients page (see patients.component), reachable from the
+ * global header's nav bar.
  */
 @Component({
   selector: 'app-patient-search-bar',

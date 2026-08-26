@@ -13,20 +13,32 @@ import { VisitHistoryListComponent } from './features/patient-history/visit-hist
 import { PatientEditComponent } from './features/patients/patient-edit/patient-edit.component';
 import { PatientProfileComponent } from './features/patients/patient-profile/patient-profile.component';
 import { PatientRegistrationFormComponent } from './features/patients/patient-registration-form/patient-registration-form.component';
+import { PatientsComponent } from './features/patients/patients/patients.component';
 import { PrescriptionFormComponent } from './features/prescriptions/prescription-form/prescription-form.component';
 import { PrintablePrescriptionComponent } from './features/prescriptions/printable-prescription/printable-prescription.component';
 
+// `data: { hideHeader: true }` marks every add/edit (data-entry) screen so
+// the global header (see shared/app-header) stays off the consultation
+// entry path -- AppComponent reads this from the deepest activated route
+// rather than matching on the URL string, so a route's header visibility is
+// declared right next to its own definition.
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
+  { path: 'login', component: LoginComponent, data: { hideHeader: true } },
   {
     path: 'dashboard',
     component: DashboardComponent,
     canActivate: [authGuard],
   },
   {
+    path: 'patients',
+    component: PatientsComponent,
+    canActivate: [authGuard],
+  },
+  {
     path: 'doctor-details',
     component: DoctorDetailsFormComponent,
     canActivate: [authGuard],
+    data: { hideHeader: true },
   },
   {
     path: 'export',
@@ -37,11 +49,13 @@ export const routes: Routes = [
     path: 'appointments/new',
     component: AppointmentFormComponent,
     canActivate: [authGuard],
+    data: { hideHeader: true },
   },
   {
     path: 'appointments/walk-in',
     component: WalkInRegistrationComponent,
     canActivate: [authGuard],
+    data: { hideHeader: true },
   },
   {
     path: 'appointments',
@@ -52,16 +66,19 @@ export const routes: Routes = [
     path: 'appointments/:appointmentId/consultation',
     component: ConsultationWorkflowComponent,
     canActivate: [authGuard],
+    data: { hideHeader: true },
   },
   {
     path: 'visits/:visitId/prescriptions/new',
     component: PrescriptionFormComponent,
     canActivate: [authGuard],
+    data: { hideHeader: true },
   },
   {
     path: 'visits/:visitId',
     component: ConsultationWorkflowComponent,
     canActivate: [authGuard],
+    data: { hideHeader: true },
   },
   {
     path: 'prescriptions/:id',
@@ -72,11 +89,13 @@ export const routes: Routes = [
     path: 'patients/new',
     component: PatientRegistrationFormComponent,
     canActivate: [authGuard],
+    data: { hideHeader: true },
   },
   {
     path: 'patients/:id/edit',
     component: PatientEditComponent,
     canActivate: [authGuard],
+    data: { hideHeader: true },
   },
   {
     path: 'patients/:id/history',
