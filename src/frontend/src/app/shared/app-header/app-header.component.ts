@@ -24,10 +24,16 @@ export class AppHeaderComponent implements OnInit {
   // Base64 image data URL, same encoding doctor-details-form.component.ts
   // already uses -- null shows a placeholder icon rather than a broken <img>.
   readonly logoDataUrl = signal<string | null>(null);
+  // Falls back to "Clinic" when DoctorDetails hasn't been configured yet,
+  // matching DoctorDetailsService's own empty-string-before-first-save default.
+  readonly clinicName = signal<string>('Clinic');
 
   ngOnInit(): void {
     this.doctorDetailsService.get().subscribe({
-      next: (details) => this.logoDataUrl.set(details.logo ? `data:image/*;base64,${details.logo}` : null),
+      next: (details) => {
+        this.logoDataUrl.set(details.logo ? `data:image/*;base64,${details.logo}` : null);
+        this.clinicName.set(details.clinicName ? details.clinicName : 'Clinic');
+      },
       error: () => this.logoDataUrl.set(null),
     });
   }
