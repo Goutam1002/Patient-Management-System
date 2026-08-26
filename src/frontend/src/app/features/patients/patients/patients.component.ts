@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { PatientSearchBarComponent } from '../../search/patient-search-bar/patient-search-bar.component';
 import { RecentPatientsListComponent } from '../../search/recent-patients-list/recent-patients-list.component';
 
@@ -11,7 +12,7 @@ import { RecentPatientsListComponent } from '../../search/recent-patients-list/r
 @Component({
   selector: 'app-patients',
   standalone: true,
-  imports: [PatientSearchBarComponent, RecentPatientsListComponent],
+  imports: [RouterLink, PatientSearchBarComponent, RecentPatientsListComponent],
   templateUrl: './patients.component.html',
 })
 export class PatientsComponent {}
