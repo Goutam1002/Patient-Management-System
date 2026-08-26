@@ -15,12 +15,12 @@ type PrescriptionItemGroup = FormGroup<{
 /**
  * Medicine line-item entry -- one screen, add/remove rows freely, each
  * DrugName field backed by DrugNameTypeaheadComponent. Reached from the
- * consultation workflow's post-visit success panel
- * (/visits/:visitId/prescriptions/new), so a diagnosis has already been
- * recorded on the visit this prescription attaches to (see the module's own
- * Dependencies note). Submitting calls Create and lands on the printable
- * view -- no separate "confirm" step, since Prescription has no update
- * endpoint to route back to (a correction is always a fresh Create).
+ * consultation workflow's post-visit success panel or the Daily Schedule's
+ * "Add Prescription" button (/visits/:visitId/prescriptions/new), so a
+ * diagnosis has already been recorded on the visit this prescription
+ * attaches to (see the module's own Dependencies note). Submitting calls
+ * Create and returns to the Daily Schedule -- the printable view is still
+ * reachable afterward from the visit's own prescription list.
  */
 @Component({
   selector: 'app-prescription-form',
@@ -90,9 +90,9 @@ export class PrescriptionFormComponent implements OnInit {
         })),
       })
       .subscribe({
-        next: (prescription) => {
+        next: () => {
           this.saving.set(false);
-          this.router.navigate(['/prescriptions', prescription.id]);
+          this.router.navigate(['/appointments']);
         },
         error: () => {
           this.saving.set(false);
