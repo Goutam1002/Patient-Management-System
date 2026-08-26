@@ -66,7 +66,8 @@ describe('DailyScheduleComponent', () => {
     expect(rows[0].textContent).toContain('Alice');
     expect(rows[1].textContent).toContain('Bob');
     // The walk-in entry is in the same table, marked by having a visit already.
-    expect(rows[1].textContent).toContain('Visit recorded');
+    expect(rows[1].textContent).toContain('View Consultation');
+    expect(rows[1].textContent).toContain('Add Prescription');
   });
 
   it('offers a status control for open appointments but not for completed ones', () => {
@@ -101,9 +102,12 @@ describe('DailyScheduleComponent', () => {
     expect(startLink?.textContent).toContain('Start Consultation');
     expect(startLink?.getAttribute('href')).toBe('/appointments/1/consultation');
 
-    // The already-completed walk-in links to the recorded visit instead.
-    const visitLink = rows[1].querySelector<HTMLAnchorElement>('a.badge');
-    expect(visitLink?.getAttribute('href')).toBe('/visits/77');
+    // The already-completed walk-in gets View Consultation + Add Prescription instead.
+    const links = Array.from(rows[1].querySelectorAll<HTMLAnchorElement>('td:last-child a'));
+    const viewLink = links.find((a) => a.textContent?.includes('View Consultation'));
+    const prescriptionLink = links.find((a) => a.textContent?.includes('Add Prescription'));
+    expect(viewLink?.getAttribute('href')).toBe('/visits/77');
+    expect(prescriptionLink?.getAttribute('href')).toBe('/visits/77/prescriptions/new');
   });
 
   it('shows a message when the day is empty', () => {

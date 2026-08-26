@@ -69,9 +69,17 @@
               </td>
               <td>
                 @if (appointment.visitId !== null) {
-                  <a class="badge bg-info text-dark text-decoration-none" [routerLink]="['/visits', appointment.visitId]">
-                    Visit recorded
-                  </a>
+                  <div class="d-flex gap-1">
+                    <a class="btn btn-sm btn-outline-info" [routerLink]="['/visits', appointment.visitId]">
+                      View Consultation
+                    </a>
+                    <a
+                      class="btn btn-sm btn-outline-primary"
+                      [routerLink]="['/visits', appointment.visitId, 'prescriptions', 'new']"
+                    >
+                      Add Prescription
+                    </a>
+                  </div>
                 } @else if (appointment.status === 'Scheduled') {
                   <a class="btn btn-sm btn-outline-primary" [routerLink]="['/appointments', appointment.id, 'consultation']">
                     Start Consultation
